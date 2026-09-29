@@ -281,6 +281,14 @@
     eq('提示按钮角标同步', text('#hint-count'), '1');
     ck('提示不写在黑格上', !g.black.has(info.cell), info.cell);
     ck('提示句子里有格名', /r\d+c\d+/.test(info.text), info.text);
+    // 撤销会把提示落下的那一格收回未定，但**提示计数不许退**：退了就能靠撤销刷出一条
+    // 「没求过提示」的纪录，而纪录比较的第一位就是提示数（下面 win 腿量那一条）。
+    const hintedVal = g.st[info.cell];
+    A().undo();
+    ck('提示那一格原本写上了数字', hintedVal !== en.UND, String(hintedVal));
+    eq('撤销把提示那一格收回未定', g.st[info.cell], en.UND);
+    eq('撤销不退还提示计数', text('#stat-hints'), '1');
+    eq('撤销不退还提示角标', text('#hint-count'), '1');
     // 连续问提示 = 全程零猜测地把这局推完
     const res = g.solveWithLogic();
     eq('照规则能推到底', res.status, 'won');
@@ -336,6 +344,21 @@
     const before = g2.codes();
     eq('赢了之后再写子被拒', A().write(g2.white[0], 1), null);
     eq('盘面没有变', g2.codes(), before);
+    // 纪录的比较顺序：先提示数，同步数才比步数，同步步数才比用时。
+    // 六次提示换来的快局必须顶不掉一条零提示的慢局，否则"纪录"就只是手速。
+    en.Store.data.best.sho = { ms: 90000, hints: 0, moves: 40, size: '5x5', at: 0 };
+    en.Store.save();
+    ck('先立住一条零提示的慢纪录', (en.Store.best('sho') || {}).ms === 90000, JSON.stringify(en.Store.best('sho')));
+    eq('求过一次的快局顶不掉它', en.Store.recordBest('sho', { ms: 1000, hints: 1, moves: 20, size: '5x5' }), false);
+    eq('同提示但步数更多的也顶不掉', en.Store.recordBest('sho', { ms: 1000, hints: 0, moves: 41, size: '5x5' }), false);
+    eq('同提示同步数、只有更快才顶', en.Store.recordBest('sho', { ms: 80000, hints: 0, moves: 40, size: '5x5' }), true);
+    eq('纪录换成了那局更快的', en.Store.best('sho').ms, 80000);
+    A().show('menu');
+    const rec = (() => {
+      const li = document.querySelector('#record-list li[data-tier="sho"]');
+      return li ? li.textContent.replace(/\s+/g, ' ').trim() : '(纪录栏里没有初这一档)';
+    })();
+    ck('选档页的纪录栏念的是那条零提示 40 步的局', /提示 0 · 40 步/.test(rec), rec);
     return report({ moves: g2.moves, errs: f.errs });
   };
 

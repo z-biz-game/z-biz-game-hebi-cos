@@ -215,6 +215,13 @@ for base in "${SHAPES[@]}"; do
           localStorage.setItem('hebi-cos:v1:probe','1');" nonav >/dev/null 2>&1
         run_scenario corrupt save
         leg_stop ;;
+      *)
+        # 未知腿名必须红，不能"匹配不到就算跑完了"：LEGS=hint 曾经一声不响地跑出
+        # === ALL GREEN === 而一份报告都没有（hint 是 play 腿里的一条 scenario，不是腿名）。
+        # ${leg} 的花括号不是装饰：没有 LANG 的环境里裸写 `$leg（` 会把全角括号的首字节算进
+        # 变量名，报 unbound variable——红是红了，但点不出是哪个腿名。
+        echo "  RED 未知的腿：${leg}（LEGS 只认 core play win mouse touch keys save）" >&2
+        FAILED=1 ;;
     esac
   done
 done
@@ -232,7 +239,7 @@ if [ "$SELF" = 1 ]; then
       core|play|win) EXPECTED=$((EXPECTED + 2)) ;;
       mouse|touch|keys) EXPECTED=$((EXPECTED + 1)) ;;
       save) EXPECTED=$((EXPECTED + 5)) ;;
-      *) echo "  RED 未知的腿：$leg（对数表里没有它）" >&2; FAILED=1 ;;
+      *) echo "  RED 未知的腿：${leg}（对数表里没有它）" >&2; FAILED=1 ;;
     esac
   done
   EXPECTED=$((EXPECTED * ${#SHAPES[@]}))
