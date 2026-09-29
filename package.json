@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "蛇莓 Hebi-Ichigo — 零猜测蛇形推理. 出题时由铅笔求解器实测：每一局都唯一可解、且只用命名规则就能推到底, 难度分与档位区间都是量出来的.",
   "type": "module",
-  "main": "electron/main.cjs",
   "scripts": {
     "start": "node server.cjs",
     "dev": "node server.cjs 5262",

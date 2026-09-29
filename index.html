@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0D14" />
+<title>蛇莓 · Hebi-Ichigo 蛇形推理</title>
+<meta name="description" content="Hebi-Ichigo 蛇莓：白格里写 1–5 排出蛇（1 是头、5 是尾），黑格印着箭头与数字。每一局唯一解、每一局都能用命名规则推到底，提示只说推得出的那一步。" />
+<!-- Inline icon: without it the browser probes the Pages domain root for /favicon.ico and logs a 404. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230A0D14'/%3E%3Cpath d='M6 10h6v6h6v6h6' stroke='%2359D49C' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='8' cy='24' r='3.4' fill='%23FF7043'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="css/game.css" />
+</head>
+<body data-genre="hebi">
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>蛇莓</h1>
+      <p class="sub">Hebi-Ichigo ·  Nikoli slug <code>hebi</code></p>
+    </div>
+    <div class="top-actions">
+      <button id="btn-sound" class="ghost" type="button" aria-pressed="true">音效 开</button>
+      <button id="btn-motion" class="ghost" type="button" aria-pressed="false">动效 全</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-menu" class="view">
+      <div class="menu-hero">
+        <h2>白格里写 1–5 排出蛇，黑格的箭头与数字看着前方第一格</h2>
+        <p>
+          1 是蛇头、5 是蛇尾，同一条蛇的 1→5 要一格一格挨着走。两条蛇不能共边；
+          蛇眼在头上、背对着身体，眼里到下一个黑格之间不能再有别的蛇。
+          黑格里印的箭头指方向，数字写的是那个方向上第一个格里的数字——0 就是这条线上没有蛇。
+          <b>白格不填满</b>：留空的白格是合法状态（官方 5×5 例题 20 个白格里 10 个是空的），按 <b>空</b> 就是把它钉成留空。
+          这里没有运气题：每一局都只有一个答案，也每一局都能靠命名规则推到底。
+        </p>
+      </div>
+
+      <div class="menu-cols">
+        <div class="col">
+          <h3 class="col-title">选一档</h3>
+          <div id="tier-list" class="tiers"></div>
+          <p class="menu-disclose">
+            10×10 <b>不在菜单里</b>：实测零猜测铅笔在那个尺寸上停在平台期（推不满就不出货），
+            所以这一档没有"每局都能推到底"的承诺可给。
+          </p>
+          <div id="resume-card" class="resume" hidden>
+            <div class="resume-txt">
+              <strong id="resume-name">未完成的牌局</strong>
+              <span id="resume-meta"></span>
+            </div>
+            <button id="btn-resume" class="primary" type="button">继续</button>
+          </div>
+        </div>
+
+        <div class="col">
+          <h3 class="col-title">纪录（同档比：先看不求提示几次，再看步数，最后看时间）</h3>
+          <ul id="record-list" class="records"></ul>
+
+          <h3 class="col-title">你会用到的几条</h3>
+          <ol class="rules">
+            <li><b>P4 读数</b>：黑格的箭头指向前方第一个数字；印 0 就是这条线一路到黑格/边界都没有蛇。</li>
+            <li><b>P1 链</b>：定了某个数字，它的上一格/下一格就得挨着它。</li>
+            <li><b>P2 围</b>：一条蛇走满 1–5，它四邻里不属于它的格子一律留空。</li>
+            <li><b>P3 眼</b>：蛇头背对身体的那条延长线上，到下一个黑格为止不能有别条蛇。</li>
+          </ol>
+          <p class="rules-note">提示按的就是这几条命名规则（<code>js/engine/pencil.js</code>）：它说出的每一格，都是题面的线索推得出的。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-game" class="view" hidden>
+      <div class="stage">
+        <div class="stage-head">
+          <span id="stat-name" class="puzzle-name">—</span>
+          <span id="stat-tier" class="chip">—</span>
+          <span id="stat-seed" class="chip mono">seed —</span>
+          <span id="stat-time" class="chip mono">00:00</span>
+        </div>
+        <div id="board-wrap">
+          <canvas id="board" tabindex="0" role="img" aria-label="蛇莓棋盘：点白格写数字，按 1–5 或空"></canvas>
+          <div id="win-veil" hidden>
+            <div class="win-card">
+              <h3>每条蛇都排好了</h3>
+              <p id="win-meta"></p>
+              <p id="win-record" class="win-record"></p>
+              <div class="win-actions">
+                <button id="btn-again" class="primary" type="button">再来一局</button>
+                <button id="btn-menu-2" class="ghost" type="button">回选档</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p id="state-line" class="conflict-line" aria-live="polite"></p>
+      </div>
+
+      <aside class="panel">
+        <div class="digits" role="group" aria-label="写入这一格">
+          <button id="btn-d0" class="digit blank" type="button" aria-label="把这一格钉成留空">空</button>
+          <button id="btn-d1" class="digit" type="button" aria-pressed="false">1</button>
+          <button id="btn-d2" class="digit" type="button" aria-pressed="false">2</button>
+          <button id="btn-d3" class="digit" type="button" aria-pressed="false">3</button>
+          <button id="btn-d4" class="digit" type="button" aria-pressed="false">4</button>
+          <button id="btn-d5" class="digit" type="button" aria-pressed="false">5</button>
+        </div>
+        <div class="acts">
+          <button id="btn-hint" class="primary" type="button">提示<span class="mono" id="hint-count">0</span></button>
+          <button id="btn-undo" class="ghost" type="button">撤销</button>
+          <button id="btn-new" class="ghost" type="button">换一局</button>
+          <button id="btn-menu" class="ghost" type="button">回选档</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><span>步数</span><b id="stat-moves" class="mono">0</b></div>
+          <div class="stat"><span>提示</span><b id="stat-hints" class="mono">0</b></div>
+          <div class="stat"><span>已写数字</span><b id="stat-filled" class="mono">0/0</b></div>
+          <div class="stat"><span>未定白格</span><b id="stat-remaining" class="mono">0</b></div>
+          <div class="stat"><span>蛇条数</span><b id="stat-snakes" class="mono">0/0</b></div>
+          <div class="stat"><span>违反条款</span><b id="stat-conflicts" class="mono">0</b></div>
+          <div class="stat"><span>难度实测</span><b id="stat-score" class="mono">—</b></div>
+          <div class="stat"><span>这一局耗时</span><b id="stat-genms" class="mono">—</b></div>
+        </div>
+
+        <div class="hint-box">
+          <h4 id="hint-rule">提示理由</h4>
+          <p id="hint-line">按 <b>提示</b> 会说出当前能推的一格，以及它依据哪条命名规则。</p>
+        </div>
+
+        <div class="legend">
+          <span><i class="sw sw-black"></i>黑格（印箭头与数字）</span>
+          <span><i class="sw sw-white"></i>白格未定</span>
+          <span><i class="sw sw-blank"></i>钉成留空</span>
+          <span><i class="sw sw-snake"></i>蛇身同色</span>
+          <span><i class="sw sw-bad"></i>违反条款</span>
+        </div>
+        <p class="keyhint"><b>点击/触屏</b> 选格 · <b>1–5</b> 写数字 · <b>0</b> <b>空格</b> 钉成留空 · <b>退格</b> 收回未定 · <b>方向键</b> 移动 · <b>H</b> 提示 · <b>Z</b> 撤销</p>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>每局唯一解 · 每局可用命名规则推到底 · 提示只给推得出的一步 · 同一 seed 同一档出同一张盘 — 由 <code>tools/verify.sh</code> 在真实浏览器里逐条断言。</span>
+    <button id="btn-reset" class="link" type="button">清空存档</button>
+  </footer>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
