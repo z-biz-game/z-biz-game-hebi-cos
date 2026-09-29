@@ -1,14 +1,17 @@
 // 成本与难度：把出货率、每张耗时、难度带、以及"铅笔会不会说谎"量成有红线的表。
 // 每条红线都要能在实现变坏时变红；反过来，红线只卡"变坏"，不卡"变好"——
 // 10x10 那一段只打印观测值不设红线，因为"铅笔哪天推得满 10x10"是进步，不是回归。
-// 用法：node tools/balance.mjs [样本数]
+// 用法：node tools/balance.mjs [样本数]，或 SAMPLES=<n> —— CI 的 Difficulty ladder 一步设的是
+// 环境变量，所以这个 knob 必须真的接到样本数上（tools/doctest.mjs 的 D7 拿子进程验它）。
 import { mkBoard } from '../js/engine/hebi.js';
 import { candidates, countSolutions } from '../js/engine/count.js';
 import { solvePencil } from '../js/engine/pencil.js';
 import { makePuzzle, laySnakes, digClues } from '../js/engine/generate.js';
 import { mulberry32 } from '../js/engine/rng.js';
 
-const N = +(process.argv[2] || 20);
+const argn = +process.argv[2];
+const envn = +process.env.SAMPLES;
+const N = Number.isInteger(argn) && argn > 0 ? argn : Number.isInteger(envn) && envn > 0 ? envn : 20;
 const MENU = [
   { name: '初', R: 5, C: 5, K: 2, maxClues: 20 },
   { name: '中', R: 6, C: 6, K: 3, maxClues: 26 },

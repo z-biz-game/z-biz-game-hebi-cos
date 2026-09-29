@@ -32,6 +32,12 @@ jobs:
       - name: Engine tests
         run: node tools/engine-test.mjs
 
+      # README 印出去的每一个「现值」都得等于代码/脚本里的现在值：三档表、10 条规则名、
+      # 腿 × 形态、端口、节点预算、这张覆盖表本身、以及 SAMPLES 旋钮。散文没有闸读，
+      # 于是它会一直抄到代码改了字而文档还在引用上一个世界——这一步就是不让它那样。
+      - name: Docs are asserted surface
+        run: node tools/doctest.mjs
+
       # The ladder is a promise, not a caption: the tier medians printed in the menu are what this
       # step re-measures, and it goes red if a tier stops ordering by deduction steps.
       - name: Difficulty ladder is still measured
