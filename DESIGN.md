@@ -64,6 +64,14 @@
 - **B4 铅笔不说谎**：拿和生产同一把刀、提前收手造出的**多解盘**去问铅笔，
   它一次都不许说「推满」（`tools/balance.mjs:81`，本轮 `样本 15 · 见证多解盘 15 · 被推满 0`）。
   配套的 `B4 的样本真的含多解盘`（`tools/balance.mjs:82`）防的是这条红线空转成永远绿的灯。
+- **B5 菜单那句「实测」是承诺**：选档页把 `TIERS.med` 原样印给玩家（`js/main.js:369`），所以
+  本轮实测的推理步 med 必须逐档等于表里的数（`tools/balance.mjs:106`，`菜单 32/49/86 vs 实测 32/49/86`）。
+  ms 不进等式——那是机器速度，只卡方向（`tools/balance.mjs:108`，`13 < 40 < 257`）。
+- **B6 注释里写「实测」也得对上**：`js/engine/generate.js:147` 那句话自称实测单调，红线把它写的
+  三档步数钉在同一把尺子上（`tools/balance.mjs:113`）。配套的「读到了注释里的步数」
+  （`tools/balance.mjs:112`）防的是措辞一改、红线读不到数字就永远绿。
+  阴性自证（本轮实跑）：把注释改回历史值 `45/82` → `**RED** B6 … 注释 32/45/82 vs 实测 32/49/86`、
+  `合计红线 1 条破口`、rc=1。
 
 浏览器侧另有一把独立的小尺子：`gen` 腿在真页面里每档各出 3 张（`tools/scenarios.js:172`），
 本轮步数 med `41 / 46 / 87`、8×8 med `345–349 ms`，并断言
@@ -90,7 +98,7 @@
 | --- | --- |
 | 语法能过 | `npm run check`（`package.json:11`）+ CI 逐文件 `node --check`（`.github/workflows/ci.yml:26`） |
 | 唯一解 / 零猜测 / 同 seed 可复现 | `npm test` 127 条（`tools/engine-test.mjs:105` 唯一性证完、`tools/engine-test.mjs:121` seed 确定性） |
-| 阶梯与耗时预算 | `npm run balance` B1–B4（`.github/workflows/ci.yml:38`，`SAMPLES: "20"`，`tools/balance.mjs:98`） |
+| 阶梯与耗时预算 | `npm run balance` B1–B6（`.github/workflows/ci.yml:38`，`SAMPLES: "20"`，`tools/balance.mjs:117`） |
 | 状态读数、留空、黑格不可改、胜利三条件 | 浏览器 `play/hint/win` 腿（`tools/scenarios.js:200`、`tools/scenarios.js:304`） |
 | 「填满但不等于唯一解」不算赢 | `tools/scenarios.js:312`–`tools/scenarios.js:316`（本轮 win 腿 18 条断言） |
 | 画面真的画出来了（三种底色、留空 vs 未定、不泄露答案） | 画布像素断言 `tools/scenarios.js:455`–`tools/scenarios.js:495` |
@@ -110,11 +118,6 @@
 
 以下说法**没有任何闸守住**，因此本仓的文档与页面都不主张它们（写了就是拿文案冒充测量）：
 
-- **「每一档的标称数字被闸守住」不成立。** 选档页把 `实测推理 32 步 / 13 ms` 直接印给玩家
-  （`js/main.js:369`，常量在 `js/ui/game.js:24`），但 `balance.mjs` 用的是自己那份菜单表
-  （`tools/balance.mjs:12`），没有 import `TIERS`；浏览器侧只断言这些 med `> 0`
-  （`tools/scenarios.js:194`）。本轮两组数字确实对上（步 med `32/49/86` 全等，ms med `13/39/256`
-  vs 标称 `13/40/257`），但那是**本轮抄对了**，不是一句话被守住了。
 - **音效没有证据。** `js/audio/synth.js` 被 `js/main.js:9` import，可是全仓唯一与声音有关的断言是
   `设置退回默认`（`tools/scenarios.js:430`）读到的 `sound: true`。没有任何闸观察到一次发声。
   因此「音效由 WebAudio 合成」不写进 README。
@@ -131,9 +134,9 @@
   没有闸检查这份清单与 `js/engine/pencil.js:3`–`js/engine/pencil.js:12` 的实现集是否一致。
 - **`generate.js` 头部注释里的历史对照数**（`js/engine/generate.js:2`–`js/engine/generate.js:5` 的
   `2/60`、`396 次计数 ≈ 19 s`、`20/30 · 19 ms`，`js/engine/generate.js:25` 的 `0/3`，
-  `js/engine/generate.js:78` 的 `74/77`，`js/engine/generate.js:147` 的 `5x5 32 → 6x6 45 → 8x8 82`）
-  是**写代码时的判断记录**，没有任何闸读它们，本轮也不复现（其中 `45/82` 与本轮实测 `49/86`
-  已经不符）。它们留在原处当注释，不搬进文档。
+  `js/engine/generate.js:78` 的 `74/77`）是**写代码时的判断记录**，没有任何闸读它们，本轮也不复现。
+  它们留在原处当注释，不搬进文档。同一文件 `js/engine/generate.js:147` 那句**自称实测**的步数阶梯
+  不在此列——它归 B6 管（`tools/balance.mjs:113`），本轮改成 `32 → 49 → 86` 就是为了对上。
 - **移动端只证到「几何没坏」。** `touch` 腿在 390×844 / dpr 3 覆写下发真触屏事件并读回覆写在位
   （`tools/playtest.cjs:329`、`tools/playtest.cjs:340`），但没有 iOS/Android 真机、
   也没有任何闸量过移动端帧率或手感。

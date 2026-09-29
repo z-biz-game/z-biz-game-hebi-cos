@@ -9,8 +9,8 @@
 //     clue set plus what you have already written forces. It is the same solver the generator used
 //     to accept the board, so a hint is never a fact the clues do not force.
 //
-// TIERS lives here because the ladder is a UI promise with a measured number behind it: the
-// medians below came off `node tools/balance.mjs 20` on 2026-09-29 and the gate re-measures them.
+// TIERS lives here because the ladder is a UI promise with a measured number behind it: these step
+// medians came off `node tools/balance.mjs 20` on 2026-09-29, and B5 there re-measures them each run.
 
 import { mkBoard, LEN } from '../engine/hebi.js';
 import { makePuzzle, difficulty } from '../engine/generate.js';

@@ -41,12 +41,14 @@ GATE_SELFTEST=1 bash tools/verify.sh   # → rc=1，18 行 `FAIL GATE_SELFTEST �
   官方 5×5 例题上两条路互相点头：穷举 `1 解 · 76 节点 · 候选蛇 84`，铅笔 `0 猜推满 · 20/20 白格 · 6 轮`，
   且两个解逐格相同（`tools/engine-test.mjs:78` 计数器对官方解、`tools/engine-test.mjs:83` 铅笔对官方解）。
 - **难度阶梯 `npm run balance`**：`SAMPLES=20` 时出货率三档都是 **20/20 = 100%**，
-  推理步 med `32 / 49 / 86`、p95 `42 / 55 / 103`，每张 med `13 / 39 / 256 ms`、p95 `33 / 53 / 342 ms`，
+  推理步 med `32 / 49 / 86`、p95 `42 / 55 / 103`，每张 med `14 / 39 / 276 ms`、p95 `35 / 53 / 367 ms`，
   唯一性节点 max `358 / 6556 / 2115`（`tools/balance.mjs:39`）。红线：B1 p95 预算
   `400 / 900 / 3000 ms`、B2 出货率 ≥20%、B3 三档单调 `32 < 49 < 86`、
   B3b 首末两档区间不重叠 `5x5 p95 42 < 8x8 p10 75`、B4 铅笔对多解盘从不说「推满」
-  （`样本 15 · 见证多解盘 15 · 被推满 0`）（`tools/balance.mjs:47`、`tools/balance.mjs:48`、
-  `tools/balance.mjs:51`、`tools/balance.mjs:53`、`tools/balance.mjs:81`）。
+  （`样本 15 · 见证多解盘 15 · 被推满 0`）、B5 选档页印的「实测 N 步」逐档等于本轮实测、
+  B6 `generate.js` 注释里的步数也钉在同一把尺子上（`tools/balance.mjs:47`、`tools/balance.mjs:48`、
+  `tools/balance.mjs:51`、`tools/balance.mjs:53`、`tools/balance.mjs:81`、`tools/balance.mjs:106`、
+  `tools/balance.mjs:113`）。
 - **浏览器闸 `bash tools/verify.sh`**：真 Chrome + CDP，读 DOM 文本/几何与画布像素，不读内部标志位
   （`tools/scenarios.js:3` 起）。7 条腿（`tools/verify.sh:76`）跑出 14 份断言行 × 2 个 URL 形态
   （`tools/verify.sh:47`）= 本轮 **584 条断言，0 条失败**；两种形态每一腿条数完全相同
@@ -66,9 +68,13 @@ GATE_SELFTEST=1 bash tools/verify.sh   # → rc=1，18 行 `FAIL GATE_SELFTEST �
 
 | 档 | 尺寸 | 蛇条数 | 标称实测（`js/ui/game.js:24`） | 本轮 `npm run balance` 实测 |
 | --- | --- | --- | --- | --- |
-| 初 | 5×5 | 2 | 32 步 / 13 ms | med 32 步 / med 13 ms |
+| 初 | 5×5 | 2 | 32 步 / 13 ms | med 32 步 / med 14 ms |
 | 中 | 6×6 | 3 | 49 步 / 40 ms | med 49 步 / med 39 ms |
-| 高 | 8×8 | 5 | 86 步 / 257 ms | med 86 步 / med 256 ms |
+| 高 | 8×8 | 5 | 86 步 / 257 ms | med 86 步 / med 276 ms |
+
+左边那一列是**页面上印给玩家的话**，所以它的步数由 B5 逐档核对（`tools/balance.mjs:106`）：本轮实测
+`32 / 49 / 86` 与标称全等，不等就红。ms 不进等式——那是机器速度，B5b 只卡方向单调
+（`tools/balance.mjs:108`），因此上面 `13/40/257` 与本轮 `14/39/276` 的差别不算回归，也不是一张闸读过的承诺。
 
 10×10 不进菜单，而且**出局理由印在选档页上**：`js/ui/game.js:31`。浏览器腿断言这段披露真的在页面上
 （`tools/scenarios.js:262`；这个元素由 `js/main.js:374` 在运行时现造，不在静态 HTML 里）。它的实测依据是 `tools/balance.mjs:86` 起的观测段——本轮

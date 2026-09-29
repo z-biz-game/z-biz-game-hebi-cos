@@ -95,5 +95,24 @@ console.log('观测：10x10 K=8（不在菜单里）');
   console.log(`  出货 ${ship}/6 · 墙钟 ${Date.now() - t0} ms —— 这条只是披露：哪天推得满了是进步，不该让闸变红`);
 }
 
+// B5/B6：两处"实测"字样得有闸读。
+//   选档页那句「实测推理 N 步」直接印 js/ui/game.js 的 TIERS.med（js/main.js:369），
+//   generate.js 的注释也自称实测单调 —— 写了"实测"的数字就没有资格和实测不一致。
+//   ms 不进等式：那是机器速度，只卡方向（B5b）；步数由 seed 阶梯决定，逐档要求相等。
+{
+  const { readFileSync } = await import('node:fs');
+  const { TIERS } = await import('../js/ui/game.js');
+  const mds = rows.map(r => r.medSteps);
+  line(TIERS.length === rows.length && TIERS.every((t, i) => t.med.steps === mds[i]),
+    'B5 选档页印的「实测 N 步」等于本轮实测', `菜单 ${TIERS.map(t => t.med.steps).join('/')} vs 实测 ${mds.join('/')}`);
+  line(TIERS.every((t, i) => i === 0 || t.med.ms > TIERS[i - 1].med.ms),
+    'B5b 菜单耗时只卡方向（ms 是机器速度，不进等式）', TIERS.map(t => t.med.ms).join(' < '));
+  const src = readFileSync(new URL('../js/engine/generate.js', import.meta.url), 'utf8');
+  const m = src.match(/实测单调：(\d+)x(\d+) med (\d+) → (\d+)x(\d+) (\d+) → (\d+)x(\d+) (\d+)/);
+  line(!!m, 'B6 读到了 generate.js 注释里的步数（读不到＝这条红线空转）', m ? '读到 3 档' : '注释改了措辞或删了数字，红线得跟着改');
+  if (m) line(+m[3] === mds[0] && +m[6] === mds[1] && +m[9] === mds[2],
+    'B6 generate.js 注释里的步数等于本轮实测', `注释 ${[m[3], m[6], m[9]].join('/')} vs 实测 ${mds.join('/')}`);
+}
+
 console.log(`\n合计红线 ${red} 条破口`);
 process.exit(red ? 1 : 0);

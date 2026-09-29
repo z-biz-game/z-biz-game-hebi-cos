@@ -144,7 +144,7 @@ export function makePuzzle(opts = {}) {
   return null;
 }
 
-// 难度分 = 铅笔推完这张盘要走的推理步数（实测单调：5x5 med 32 → 6x6 45 → 8x8 82）。
+// 难度分 = 铅笔推完这张盘要走的推理步数（实测单调：5x5 med 32 → 6x6 49 → 8x8 86）。
 // 不用"蛇的条数/黑格数"当难度：那两头都能靠堆料伪装，步数是真的要推。
 export function difficulty(stats) {
   return stats ? stats.pencilSteps : 0;
