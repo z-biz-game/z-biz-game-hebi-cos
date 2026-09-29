@@ -77,7 +77,8 @@
 `tools/scenarios.js:465`）。
 
 10×10 K=8 **故意出局，并且出局理由印在选档页上**（`js/ui/game.js:31`–`js/ui/game.js:36`）；
-页面上有没有这段话是断言（`tools/scenarios.js:262`，另见 `tools/scenarios.js:193`）。
+页面上有没有这段话是断言（`tools/scenarios.js:262`，另见 `tools/scenarios.js:193`；
+元素本身由 `js/main.js:374` 现造）。
 它的实测依据是 `tools/balance.mjs:86` 起的观测段，本轮 `出货 0/6 · 墙钟 6736 ms`
 （`tools/balance.mjs:95`）。这一段**故意不设红线**（`tools/balance.mjs:3`）：铅笔哪天推得满 10×10
 是进步，不该让闸变红。所以关于 10×10 的正确说法只到「本轮 6 次尝试 0 次出货、因此不给承诺」为止，

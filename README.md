@@ -71,7 +71,7 @@ GATE_SELFTEST=1 bash tools/verify.sh   # → rc=1，18 行 `FAIL GATE_SELFTEST �
 | 高 | 8×8 | 5 | 86 步 / 257 ms | med 86 步 / med 256 ms |
 
 10×10 不进菜单，而且**出局理由印在选档页上**：`js/ui/game.js:31`。浏览器腿断言这段披露真的在页面上
-（`tools/scenarios.js:262`）。它的实测依据是 `tools/balance.mjs:86` 起的观测段——本轮
+（`tools/scenarios.js:262`；这个元素由 `js/main.js:374` 在运行时现造，不在静态 HTML 里）。它的实测依据是 `tools/balance.mjs:86` 起的观测段——本轮
 `出货 0/6 · 墙钟 6736 ms`（`tools/balance.mjs:95`）。这一句**故意不设红线**：哪天铅笔推得满 10×10
 是进步，不该让闸变红（`tools/balance.mjs:3`）。
 
