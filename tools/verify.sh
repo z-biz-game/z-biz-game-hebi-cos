@@ -72,7 +72,7 @@ trap cleanup EXIT
 ( sleep ${WD_TIMEOUT:-900}; cleanup ) </dev/null >/dev/null 2>&1 & WD=$!
 
 FAILED=0
-PLANTED=0
+REPORTS="$TMPD/reports.txt"; : >"$REPORTS"; export REPORTS
 LEGS=${LEGS:-core play win mouse touch keys save}
 
 leg_start() {   # $1 = leg name, $2 = base url
@@ -100,7 +100,7 @@ leg_stop() {   # 每条腿自己收自己的尸：profile 一定要删，写完�
 parse() {   # $1 = leg name (used as the printed name when a run dies before any assertion)
   python3 -c "
 import sys, json, os
-leg = sys.argv[1]
+leg, selfmode = sys.argv[1], sys.argv[2] == '1'
 path = os.environ['RESULT_FILE']
 raw = ''
 try:
@@ -119,10 +119,17 @@ for r in d['rows']:
     if not r['pass']: print('  FAIL %-56s %s' % (r['test'], r['detail']))
 if not d['rows']:
     print('  RED %s：NO CHECKS RUN — a leg that asserts nothing cannot be green' % leg); sys.exit(1)
+planted = sum(1 for r in d['rows'] if r['test'].startswith('GATE_SELFTEST') and not r['pass'])
+if selfmode:
+    # 先记账再判：把没种上的报告也写进对数表，末尾那句「实到几份 / 点名几份」才是有分母的数，
+    # 而不是"只有种上的才被数到"的自比较。
+    open(os.environ['REPORTS'], 'a').write('%s %d\n' % (leg, planted))
+    if planted == 0:
+        print('  RED %s：这一份报告里没有种下的错期望（这条腿证明不了自己能红）' % leg); sys.exit(1)
 extra = {k: v for k, v in d.items() if k not in ('rows', 'fail')}
 print('  %d checks, %d failed  %s' % (len(d['rows']), d['fail'], extra if extra else ''))
 sys.exit(1 if d['fail'] else 0)
-" "$1" || FAILED=1
+" "$1" "${SELF:-0}" || FAILED=1
 }
 
 run_scenario() {   # $1 name, $2 leg
@@ -215,9 +222,32 @@ done
 if [ "$SELF" = 1 ]; then
   echo
   echo "=== GATE_SELFTEST：种下的期望必须点名变红 ==="
-  echo "  planted rows: scenarios.js 在 __selftest 为真时给每一份报告加一条 1==2"
+  echo "  planted rows: scenarios.js 在 __selftest 为真时给每一份报告加一条 1==2，"
+  echo "                node 侧的腿（真事件 / nav / reload）由 playtest.cjs 的 result() 加同一条"
+  # 对数：一份报告对应一条种下的红。少一份＝那条腿这一轮根本没跑（或种期望的代码漂了），
+  # 光看 rc≠0 是分不清这两件事的。
+  EXPECTED=0
+  for leg in $LEGS; do
+    case $leg in
+      core|play|win) EXPECTED=$((EXPECTED + 2)) ;;
+      mouse|touch|keys) EXPECTED=$((EXPECTED + 1)) ;;
+      save) EXPECTED=$((EXPECTED + 5)) ;;
+      *) echo "  RED 未知的腿：$leg（对数表里没有它）" >&2; FAILED=1 ;;
+    esac
+  done
+  EXPECTED=$((EXPECTED * ${#SHAPES[@]}))
+  GOT=$(wc -l <"$REPORTS" | tr -d ' ')
+  HIT=$(awk '$2 > 0' "$REPORTS" | wc -l | tr -d ' ')
+  echo "  应有 $EXPECTED 份报告，实到 $GOT 份，其中 $HIT 份点名吃下了种下的错"
+  if [ "$GOT" != "$EXPECTED" ]; then
+    echo "  RED 阴性自证的报告数对不上：$GOT ≠ $EXPECTED（有腿没跑，或对数表漂了）" >&2
+    FAILED=1
+  fi
   if [ "$FAILED" = 0 ]; then
     echo "  RED 阴性自证失败：闸没能把种下的错期望跑红（这个闸证明不了自己会红）" >&2
+    FAILED=1
+  elif [ "$HIT" != "$EXPECTED" ]; then
+    echo "  RED 阴性自证只被 $HIT/$EXPECTED 份报告点名（差的那些腿从没红过＝没被证明会红）" >&2
     FAILED=1
   else
     echo "  ok 闸确实会红，且 rc 非 0"

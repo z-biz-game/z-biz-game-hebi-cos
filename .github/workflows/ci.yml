@@ -71,6 +71,6 @@ jobs:
           rc=$?
           set -e
           echo "rc=$rc"
-          tail -25 _tmp-selftest.log
+          tail -25 _tmp-selftest.log; grep -E '应有|点名吃下|ok 闸|RED' _tmp-selftest.log | tail -8
           [ "$rc" -ne 0 ] || { echo "SELFTEST 竟然全绿：这个闸证明不了自己会红"; exit 1; }
           grep -q 'FAIL' _tmp-selftest.log || { echo "SELFTEST 红了但没有点名是哪条断言"; exit 1; }

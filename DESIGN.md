@@ -47,9 +47,9 @@
 
 | 档 | 尺寸 | K | 出货 | 线索 med | 推理步 med / p95 | 每张 med / p95 ms | 唯一性节点 max |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 初 | 5×5 | 2 | 20/20 | 6 | 32 / 42 | 13 / 33 | 358 |
-| 中 | 6×6 | 3 | 20/20 | 8 | 49 / 55 | 39 / 53 | 6556 |
-| 高 | 8×8 | 5 | 20/20 | 15 | 86 / 103 | 256 / 342 | 2115 |
+| 初 | 5×5 | 2 | 20/20 | 6 | 32 / 42 | 17 / 41 | 358 |
+| 中 | 6×6 | 3 | 20/20 | 8 | 49 / 55 | 49 / 66 | 6556 |
+| 高 | 8×8 | 5 | 20/20 | 15 | 86 / 103 | 360 / 476 | 2115 |
 
 （同一张表由 `tools/balance.mjs:39` 打印；`npm test` 用 12 个 seed 独立量到
 `31 / 49 / 88` 步、节点 max `309 / 507 / 10822`，`tools/engine-test.mjs:110`。）
@@ -74,7 +74,7 @@
   `合计红线 1 条破口`、rc=1。
 
 浏览器侧另有一把独立的小尺子：`gen` 腿在真页面里每档各出 3 张（`tools/scenarios.js:172`），
-本轮步数 med `41 / 46 / 87`、8×8 med `345–349 ms`，并断言
+本轮步数 med `41 / 46 / 87`、8×8 med `407–408 ms`，并断言
 `高一档的 min(87) > 初档的 max(41)`（`tools/scenarios.js:191`）与 med 单调（`tools/scenarios.js:192`）。
 
 ### 困难档怎么描述：以出货与预算为准，不以形容词为准
@@ -87,7 +87,7 @@
 10×10 K=8 **故意出局，并且出局理由印在选档页上**（`js/ui/game.js:31`–`js/ui/game.js:36`）；
 页面上有没有这段话是断言（`tools/scenarios.js:262`，另见 `tools/scenarios.js:193`；
 元素本身由 `js/main.js:374` 现造）。
-它的实测依据是 `tools/balance.mjs:86` 起的观测段，本轮 `出货 0/6 · 墙钟 6736 ms`
+它的实测依据是 `tools/balance.mjs:86` 起的观测段，本轮 `出货 0/6 · 墙钟 8319 ms`
 （`tools/balance.mjs:95`）。这一段**故意不设红线**（`tools/balance.mjs:3`）：铅笔哪天推得满 10×10
 是进步，不该让闸变红。所以关于 10×10 的正确说法只到「本轮 6 次尝试 0 次出货、因此不给承诺」为止，
 再往上（「所有大尺寸都不行」）没有东西守着。
@@ -102,17 +102,18 @@
 | 状态读数、留空、黑格不可改、胜利三条件 | 浏览器 `play/hint/win` 腿（`tools/scenarios.js:200`、`tools/scenarios.js:304`） |
 | 「填满但不等于唯一解」不算赢 | `tools/scenarios.js:312`–`tools/scenarios.js:316`（本轮 win 腿 18 条断言） |
 | 画面真的画出来了（三种底色、留空 vs 未定、不泄露答案） | 画布像素断言 `tools/scenarios.js:455`–`tools/scenarios.js:495` |
-| 真输入事件（鼠标/触屏/键盘） | `tools/playtest.cjs:322` 的 `Input.dispatch*`，键盘焦点先真点一次钉住（`tools/playtest.cjs:401`）、逐键到达数（`tools/playtest.cjs:415`） |
-| 存档不含解、续局接得上计时 | `tools/scenarios.js:365`（存档里没有解）、`tools/scenarios.js:409`（计时从存档接着走）；证人由 node 在派发导航之前抄走（`tools/verify.sh:191`） |
-| 片段导航不算重载 | `tools/verify.sh:195`，本轮 4 条断言：`timeOrigin` 与文档身份都不许变 |
+| 真输入事件（鼠标/触屏/键盘） | `tools/playtest.cjs:328` 的 `Input.dispatch*`，键盘焦点先真点一次钉住（`tools/playtest.cjs:407`）、逐键到达数（`tools/playtest.cjs:421`） |
+| 存档不含解、续局接得上计时 | `tools/scenarios.js:365`（存档里没有解）、`tools/scenarios.js:409`（计时从存档接着走）；证人由 node 在派发导航之前抄走（`tools/verify.sh:198`） |
+| 片段导航不算重载 | `tools/verify.sh:202`，本轮 4 条断言：`timeOrigin` 与文档身份都不许变 |
 | 坏档 = 没有存档，不是白屏 | `tools/scenarios.js:424`–`tools/scenarios.js:430`（本轮 corrupt 腿 9 条） |
-| 两种 URL 形态都算数 | `tools/verify.sh:47`（前缀形态由 `server.cjs:12` 实现，不是为测试另写一个服务）；preflight 先证明端口上的字节是本仓的（`tools/verify.sh:53`–`tools/verify.sh:61`） |
-| 闸自己会红 | `tools/scenarios.js:29`  planted 行 + `tools/verify.sh:215`；CI 要求 `rc≠0` **且**日志点名 `FAIL`（`.github/workflows/ci.yml:75`、`.github/workflows/ci.yml:76`） |
+| 两种 URL 形态都算数 | `tools/verify.sh:47`（前缀形态由 `server.cjs:12` 实现，不是为测试另写一个服务）；preflight 先证明端口上的字节是本仓的（`tools/verify.sh:53`–`tools/verify.sh:60`） |
+| 闸自己会红——而且是**每一份报告**都会红 | 场景腿由 `tools/scenarios.js:29` 种一条 1==2，node 侧的真事件腿与 nav/reload 由 `tools/playtest.cjs:38` 的 `result()` 种同一条；分母从 `LEGS` 现算（`tools/verify.sh:229-238`），哪一份没种上就点名哪一份（`tools/verify.sh:128`）。CI 要求 `rc≠0` **且**日志点名 `FAIL`（`.github/workflows/ci.yml:75`、`.github/workflows/ci.yml:76`） |
 | 什么都没断言的腿不算绿 | `tools/verify.sh:113`（没有 RESULT 行）、`tools/verify.sh:121`（NO CHECKS RUN） |
 
 本轮合计：`npm test` 127/0；`npm run check` OK；`npm run balance` 红线 0 条破口；
 `bash tools/verify.sh` 584 条断言 / 0 失败（14 份报告 × 2 形态）、`=== ALL GREEN ===`、`rc=0`；
-`GATE_SELFTEST=1` `rc=1`、18 行具名红。
+`GATE_SELFTEST=1` `rc=1`、28 行具名红（612 条断言里 28 条失败，对数表读出「应有 28 份报告，实到 28 份，
+其中 28 份点名吃下了种下的错」）。
 
 ## 不承诺
 
@@ -138,7 +139,7 @@
   它们留在原处当注释，不搬进文档。同一文件 `js/engine/generate.js:147` 那句**自称实测**的步数阶梯
   不在此列——它归 B6 管（`tools/balance.mjs:113`），本轮改成 `32 → 49 → 86` 就是为了对上。
 - **移动端只证到「几何没坏」。** `touch` 腿在 390×844 / dpr 3 覆写下发真触屏事件并读回覆写在位
-  （`tools/playtest.cjs:329`、`tools/playtest.cjs:340`），但没有 iOS/Android 真机、
+  （`tools/playtest.cjs:335`、`tools/playtest.cjs:346`），但没有 iOS/Android 真机、
   也没有任何闸量过移动端帧率或手感。
 - **计时类断言只保证方向，不保证快。** 计时腿断言的是「续局后 `elapsedMs` 不小于存档基线」
-  （`tools/scenarios.js:409`），本轮读到 `134 ms` 起步的续局；没有任何闸承诺某一档多少毫秒内推完。
+  （`tools/scenarios.js:409`），本轮读到 `149 ms` 起步的续局；没有任何闸承诺某一档多少毫秒内推完。

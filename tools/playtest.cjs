@@ -2,7 +2,8 @@
 //
 // env: CDP_PORT (devtools port, default 9362), BASE_URL (page origin, default
 //      http://127.0.0.1:5262/), WITNESS (json handed to the resume scenario)
-//      GATE_SELFTEST=1 (makes scenarios.js plant one deliberately wrong expectation)
+//      GATE_SELFTEST=1 (makes every report plant one deliberately wrong expectation —
+//      scenarios.js 那份和 node 侧的 leg/nav/reload 那份走的是同一条规矩)
 //
 //   node tools/playtest.cjs open <url>          fresh tab at <url>, prints boot logs
 //   node tools/playtest.cjs eval '<expr>' [nonav]   evaluate, await promises, print result
@@ -31,7 +32,12 @@ const logs = [];
 const rows = [];
 const ck = (test, cond, detail) => rows.push({ test, pass: !!cond, detail: cond ? '' : String(detail === undefined ? '' : detail) });
 const eq = (test, got, want) => ck(test, String(got) === String(want), `got ${got} / want ${want}`);
-const result = (extra) => ({ rows: rows.slice(), fail: rows.filter((r) => !r.pass).length, ...extra });
+const result = (extra) => {
+  // 阴性自证要覆盖 node 侧的腿：真事件（leg mouse/touch/keys）与 nav/reload 的报告不经过
+  // scenarios.js 的 report()，不在这里也种一条的话，这五条腿就永远是"没能红过的绿"。
+  if (SELFTEST) rows.push({ test: 'GATE_SELFTEST 种下的错期望（1 应当等于 2）', pass: 1 === 2, detail: 'planted red' });
+  return { rows: rows.slice(), fail: rows.filter((r) => !r.pass).length, ...extra };
+};
 const out = (extra) => {
   const r = result(extra);
   if (logs.length) console.error(logs.slice(-40).join('\n'));
