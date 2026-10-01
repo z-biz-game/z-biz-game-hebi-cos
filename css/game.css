@@ -12,7 +12,11 @@
 html, body {
   margin: 0;
   min-height: 100%;
-  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 62%, var(--surface) 100%);
+  /* 纸的颗粒压在渐变上：这是母题里"纸"的那一半。它只在页面底层，不进格子——
+     格子的底色是门禁采样的对象（三种底色 / 留空 vs 未定），那里放纹理就是去搅判据。 */
+  background:
+    url('../assets/textures/paper-grain.png') 0 0 / 128px 128px repeat,
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 62%, var(--surface) 100%);
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
@@ -24,7 +28,11 @@ body { touch-action: manipulation; }
 #app {
   max-width: 1180px;
   margin: 0 auto;
-  padding: var(--space-page) var(--space-page) var(--space-inner);
+  /* max() 而不是直接加 env()：没有刘海的机器上 env() 恒为 0，设计间距不该因此缩水。 */
+  padding: max(var(--space-page), env(safe-area-inset-top))
+    max(var(--space-page), env(safe-area-inset-right))
+    max(var(--space-inner), env(safe-area-inset-bottom))
+    max(var(--space-page), env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: var(--space-card);
@@ -56,7 +64,7 @@ code { font-family: var(--font-mono); font-size: 0.92em; color: var(--ink-dim); 
   letter-spacing: 0.18em;
 }
 
-.top-actions { display: flex; gap: var(--space-gutter); }
+.top-actions { display: flex; flex-wrap: wrap; gap: var(--space-gutter); justify-content: flex-end; }
 
 button {
   font: inherit;
@@ -65,8 +73,9 @@ button {
   border-radius: var(--radius-button);
   border: 1px solid var(--line);
   background: var(--surface-lift);
-  padding: 10px 14px;
-  min-height: 34px;
+  padding: 12px 16px;
+  /* 44px 是拇指的地板，不是审美选择：34px 那一档在手机上就是掷硬币。 */
+  min-height: 44px;
   transition: transform var(--dur-tap) var(--ease-spring), border-color var(--dur-base) var(--ease-ease),
     background var(--dur-base) var(--ease-ease);
 }
@@ -181,12 +190,38 @@ button[aria-pressed='true'] { border-color: var(--accent); background: var(--acc
   background: var(--surface);
   padding: 6px;
 }
-#board { display: block; touch-action: manipulation; border-radius: var(--radius-card); }
+#board { display: block; touch-action: manipulation; border-radius: var(--radius-card); position: relative; z-index: 1; }
 #board:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* 反馈层：叠在盘上、不吃输入。位置由 js/fx/layer.js 按 view.geo 写成 10px（板心偏移），
+   所以这里只定"贴在 wrap 内沿 + 不参与命中"这两件事。 */
+.fx-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: var(--radius-card);
+}
+
+#pause-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 7, 12, 0.86);
+  border-radius: var(--radius-card);
+  animation: rise var(--dur-base) var(--ease-ease) both;
+}
+.pause-card { text-align: center; padding: var(--space-card); max-width: 88%; }
+.pause-card h3 { margin: 0 0 6px; font-size: 20px; letter-spacing: 0.08em; }
+.pause-card p { margin: 0 0 12px; font-size: 12px; color: var(--ink-dim); line-height: 1.7; }
 
 #win-veil {
   position: absolute;
   inset: 0;
+  z-index: 4;
   display: grid;
   place-items: center;
   background: rgba(5, 7, 12, 0.82);
@@ -213,7 +248,7 @@ button[aria-pressed='true'] { border-color: var(--accent); background: var(--acc
 }
 
 .digits { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.digit { padding: 12px 0; font-size: 17px; font-weight: 700; text-align: center; }
+.digit { padding: 12px 0; min-height: 48px; font-size: 17px; font-weight: 700; text-align: center; }
 .digit.blank { font-size: 13px; font-weight: 600; color: var(--ink-dim); }
 .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 #btn-hint .mono { margin-left: 6px; font-size: 11px; opacity: 0.75; }
@@ -250,11 +285,57 @@ button[aria-pressed='true'] { border-color: var(--accent); background: var(--acc
 }
 
 .reduce-motion * { animation: none !important; transition: none !important; }
+/* 省动效不是"把动画调快"：反馈层整层不再参与画面。提示那一格的静态描边仍由 board.js 画，
+   信息一条不少，动的东西为零。 */
+.reduce-motion .fx-layer { display: none; }
+
+/* ---------- 玩法说明 ---------- */
+
+.how-to-play {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgba(5, 7, 12, 0.82);
+  animation: rise var(--dur-base) var(--ease-ease) both;
+}
+
+.howto-card {
+  background: var(--surface);
+  border: 1px solid var(--line-heavy);
+  border-radius: var(--radius-card);
+  padding: var(--space-card);
+  max-width: 820px;
+  max-height: 86vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-inner);
+}
+.howto-card h3 { margin: 0; font-size: 18px; letter-spacing: 0.04em; }
+.howto-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-card); }
+.howto-cols h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.1em; color: var(--warn); }
+.howto-cols p { margin: 0; font-size: 12.5px; line-height: 1.85; color: var(--ink-dim); }
+.howto-cols b { color: var(--ink); }
+.howto-keys { font-size: 12px; }
+.howto-note { border-left: 3px solid var(--line-heavy); padding-left: 10px; }
+.howto-actions { display: flex; justify-content: flex-end; }
+
+@media (max-width: 900px) {
+  .howto-cols { grid-template-columns: minmax(0, 1fr); }
+}
 
 @media (max-width: 900px) {
   #view-game { grid-template-columns: minmax(0, 1fr); }
   .menu-cols { grid-template-columns: minmax(0, 1fr); }
   .panel { order: 2; }
   .stage { order: 1; }
-  #app { padding: 12px 12px var(--space-inner); }
+  /* 窄屏把页面间距收紧，但 env() 必须继续参与：刘海只在手机上存在。 */
+  #app {
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      max(var(--space-inner), env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
 }

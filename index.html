@@ -38,7 +38,10 @@
       <p class="sub">Hebi-Ichigo ·  Nikoli slug <code>hebi</code></p>
     </div>
     <div class="top-actions">
-      <button id="btn-sound" class="ghost" type="button" aria-pressed="true">音效 开</button>
+      <button id="btn-help" class="ghost" type="button" aria-expanded="false" aria-controls="howto">玩法</button>
+      <button id="btn-pause" class="ghost" type="button" aria-pressed="false">暂停</button>
+      <button id="btn-full" class="ghost" type="button" aria-pressed="false">全屏</button>
+      <button id="btn-sound" class="ghost" type="button" aria-pressed="false" aria-label="音效与静音开关">音效 开</button>
       <button id="btn-motion" class="ghost" type="button" aria-pressed="false">动效 全</button>
     </div>
   </header>
@@ -99,6 +102,14 @@
         </div>
         <div id="board-wrap">
           <canvas id="board" tabindex="0" role="img" aria-label="蛇莓棋盘：点白格写数字，按 1–5 或空"></canvas>
+          <canvas id="fx" class="fx-layer" aria-hidden="true"></canvas>
+          <div id="pause-veil" hidden>
+            <div class="pause-card">
+              <h3>已暂停</h3>
+              <p>时钟与动效都停住。暂停期间写格、提示、撤销一概不生效。</p>
+              <button id="btn-pause-2" class="primary" type="button">继续</button>
+            </div>
+          </div>
           <div id="win-veil" hidden>
             <div class="win-card">
               <h3>每条蛇都排好了</h3>
@@ -153,10 +164,51 @@
           <span><i class="sw sw-snake"></i>蛇身同色</span>
           <span><i class="sw sw-bad"></i>违反条款</span>
         </div>
-        <p class="keyhint"><b>点击/触屏</b> 选格 · <b>1–5</b> 写数字 · <b>0</b> <b>空格</b> 钉成留空 · <b>退格</b> 收回未定 · <b>方向键</b> 移动 · <b>H</b> 提示 · <b>Z</b> 撤销</p>
+        <p class="keyhint"><b>点击/触屏</b> 选格 · <b>1–5</b> 写数字 · <b>0</b> <b>空格</b> 钉成留空 · <b>退格</b> 收回未定 · <b>方向键</b> 移动 · <b>H</b> 提示 · <b>Z</b> 撤销 · <b>Enter</b> 开局 · <b>P</b> 暂停 · <b>R</b> 换一局 · <b>M</b> 静音 · <b>F</b> 全屏 · <b>?</b> 玩法</p>
       </aside>
     </section>
   </main>
+
+  <section id="howto" class="how-to-play" role="dialog" aria-modal="true" aria-labelledby="howto-title" hidden>
+    <div class="howto-card">
+      <h3 id="howto-title">玩法说明 · 三件事读完就能开局</h3>
+      <div class="howto-cols">
+        <div>
+          <h4>① 蛇怎么排</h4>
+          <p>
+            白格里写 <b>1–5</b>：<b>1 是蛇头、5 是蛇尾</b>，同一条蛇的 1→5 逐格共边相连，不能斜着走。
+            两条蛇不能共边（斜角可以）。<b>蛇眼在头上、背对身体</b>：从蛇眼沿"离开身体"的方向看出去，
+            到下一个黑格（或盘边）之前不能再有别条蛇。
+            <b>白格允许留空</b>——按 <b>空</b> 就是把这格钉成"确定没有蛇"，它和写数字一样是推进。
+          </p>
+        </div>
+        <div>
+          <h4>② 黑格怎么读</h4>
+          <p>
+            黑格里的<b>箭头</b>指一个方向，<b>数字</b>是那个方向上<b>第一个</b>白格里的数字——
+            也就是"往前看一格，看到几"。印 <b>0</b> 表示这条射线上直到下一个黑格（或盘边）都没有蛇。
+            题面<b>不告诉你有几条蛇</b>，条数要自己数出来。
+          </p>
+        </div>
+        <div>
+          <h4>③ 键位与开关</h4>
+          <p class="howto-keys">
+            <b>点击 / 触屏</b> 选格 · <b>1–5</b> 写数字 · <b>0</b> 或 <b>空格</b> 钉成留空 ·
+            <b>退格</b> 收回未定 · <b>方向键</b> 移动光标 · <b>H</b> 提示 · <b>Z</b> 撤销<br>
+            <b>Enter</b> 开局 / 再来一局 · <b>P</b> 暂停 · <b>R</b> 换一局 · <b>M</b> 静音 ·
+            <b>F</b> 全屏 · <b>?</b> 本说明 · <b>Esc</b> 关闭
+          </p>
+          <p class="howto-note">
+            提示按的是命名规则（<code>js/engine/pencil.js</code>），它只说<b>当前推得出</b>的那一步——
+            推不出时它会说"推不动了"，不会替你猜。用了提示的这一局仍会记时间，但纪录先比提示次数。
+          </p>
+        </div>
+      </div>
+      <div class="howto-actions">
+        <button id="howto-close" class="primary" type="button">知道了，开始推</button>
+      </div>
+    </div>
+  </section>
 
   <footer class="foot">
     <span>每局唯一解 · 每局可用命名规则推到底 · 提示只给推得出的一步 · 同一 seed 同一档出同一张盘 — 由 <code>tools/verify.sh</code> 在真实浏览器里逐条断言。</span>
