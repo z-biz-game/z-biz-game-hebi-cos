@@ -83,6 +83,40 @@ function readResume(raw, tierOf) {
   };
 }
 
+// 第二段解码：`readResume` 早就逐字段验过，但 best/totals 是当年偷懒直接 spread 进来的——
+// 一条脏纪录会把整本账（含别的档位）带进 NaN，而菜单要打印这本账。规矩不变：坏哪条丢哪条，
+// 丢完还得能继续玩。
+function nonNegInt(v) {
+  return isInt(v) && v >= 0 && v <= 1e12 ? v : null;
+}
+
+function validBest(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [tier, b] of Object.entries(raw)) {
+    if (!b || typeof b !== 'object' || Array.isArray(b)) continue;
+    const ms = nonNegInt(b.ms);
+    const hints = nonNegInt(b.hints);
+    const moves = nonNegInt(b.moves);
+    if (ms === null || hints === null || moves === null) continue;
+    const size = nonNegInt(b.size);
+    const at = nonNegInt(b.at);
+    out[tier] = { ms, hints, moves, size: size === null ? 0 : size, at: at === null ? 0 : at };
+  }
+  return out;
+}
+
+function validTotals(raw) {
+  const base = defaults().totals;
+  const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const out = {};
+  for (const k of Object.keys(base)) {
+    const v = nonNegInt(src[k]);
+    out[k] = v === null ? base[k] : v;
+  }
+  return out;
+}
+
 function load() {
   const base = defaults();
   try {
@@ -91,14 +125,18 @@ function load() {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return base;
     const settings =
-      parsed.settings && typeof parsed.settings === 'object' ? parsed.settings : {};
+      parsed.settings && typeof parsed.settings === 'object' && !Array.isArray(parsed.settings) ? parsed.settings : {};
+    const bool = (v, d) => (typeof v === 'boolean' ? v : d);
     return {
       ...base,
       ...parsed,
-      settings: { ...base.settings, ...settings },
-      totals: { ...base.totals, ...(parsed.totals || {}) },
+      settings: {
+        sound: bool(settings.sound, base.settings.sound),
+        reduceMotion: bool(settings.reduceMotion, base.settings.reduceMotion),
+      },
+      totals: validTotals(parsed.totals),
       seedCounter: isInt(parsed.seedCounter) && parsed.seedCounter >= 1 ? parsed.seedCounter : 1,
-      best: parsed.best && typeof parsed.best === 'object' ? parsed.best : {},
+      best: validBest(parsed.best),
       // 结构不过就丢，不抛：坏档的表现必须是"没有存档"，不是白屏。
       resume: parsed.resume && typeof parsed.resume === 'object' ? parsed.resume : null,
     };
