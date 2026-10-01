@@ -18,6 +18,9 @@ const TYPES = {
   '.cjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  // Pages 以 application/manifest+json 发 manifest；本地若发成 octet-stream，
+  // Chrome 会直接拒掉安装提示 ⇒ 门禁与线上对同一个文件的行为就不是一回事了。
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',

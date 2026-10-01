@@ -20,14 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # No bundler: the game ships plain ES modules, so the site is a file copy.
-      # Only these three paths are reachable from index.html — keeping the server, the harness
-      # and the docs out of the artifact also keeps node_modules out, which `path: .` would
-      # happily upload.
+      # 这里列的就是 index.html 能到达的全部：漏一个 assets/ 目录，线上就有 404 的图标，
+      # 漏掉 manifest 与 sw.js，"可安装"就只在本地成立。把服务端、闸与文档挡在产物之外，
+      # 也顺手挡住了 `path: .` 会一起上传的 node_modules。
       - name: Assemble static site
         run: |
           mkdir _site
-          cp index.html _site/
-          cp -r css js _site/
+          cp index.html manifest.webmanifest sw.js _site/
+          cp -r css js assets _site/
       - uses: actions/configure-pages@v5
         with:
           use-actions-v4-deploy-action: true
