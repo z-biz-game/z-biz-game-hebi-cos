@@ -193,7 +193,9 @@ function togglePause(force) {
     say('已暂停：时钟与动效停住，写格与提示都不生效。');
   } else {
     say('');
-    lastTs = 0;
+    // 暂停期间的墙钟缺口不算进这一局：积分器复位 ⇒ 恢复后的第一帧 dt=0，
+    // 不会把"去倒了杯咖啡"补成 250ms 的仿真快进（那笔账本来就被 MAX_FRAME_DT 钳住）。
+    time.reset();
     startLoop();
   }
   syncStats();
