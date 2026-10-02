@@ -699,7 +699,9 @@ window.addEventListener('keydown', (ev) => {
     keys.handled++;
     return;
   }
-  if (k === 'Enter') {
+  // Space 与 Enter 同义只限"这一按会开局"的三种场合：没盘、盘已胜、菜单还露着。
+  // 进了盘 Space 仍然是"留空"（下面那条分支），不改它的语义。
+  if (k === 'Enter' || (k === ' ' && (!game || game.status === 'won' || el.viewMenu.hidden === false))) {
     if (!el.help.hidden) showHelp(false);
     else if (game && game.status === 'won') begin({ tier: game.puzzle.tier });
     else if (!game || el.viewMenu.hidden === false) startFromMenu(game ? game.puzzle.tier : null);
