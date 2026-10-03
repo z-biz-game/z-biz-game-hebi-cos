@@ -63,8 +63,12 @@ fi
 
 # 台账会真跑 verify.sh（命令刀 H13 打的是 LEGS=hint），所以嵌套那一层必须由哨兵跳过自己：
 # 闸叫台账、台账叫闸，谁都不肯先收口就没有底。env 由 sabotage.py 派 subprocess 时设上。
+# 阴性自证那一跑也跳过：SELF=1 给浏览器腿种的是注定错的期望，每一把刀的 rc 都会因此非 0，
+# 于是"红"不再归因于刀——台账要在干净的树上量，这才是它自己那句承诺。
 if [ -n "${HEBI_VERIFY_INSIDE_LEDGER:-}" ]; then
   echo "台账：跳过（这一层是台账自己叫起的 verify.sh）"
+elif [ "${SELF}" = "1" ]; then
+  echo "台账：跳过（GATE_SELFTEST 这一跑的浏览器腿本来就红，刀的红没有归因）"
 else
   HEBI_VERIFY_INSIDE_LEDGER=1 python3 "$HERE/tools/sabotage.py" >"$LLOG" 2>&1
   SB_RC=$?
