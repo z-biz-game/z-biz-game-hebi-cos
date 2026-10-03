@@ -34,7 +34,7 @@ rm -rf "$TMPD"; mkdir -p "$TMPD"
 # 整道闸照样 exit 0。这两颗钉由 tools/doctest.mjs 的 D11b/D11c 反向核对（它读的就是下面这一行），
 # 改一处不改另一处就是红。
 FAILED=0
-LOGIC_EXPECTS="doctest:43 sabotage:17"
+LOGIC_EXPECTS="doctest:44 sabotage:17"
 pin_of() { printf '%s\n' "$LOGIC_EXPECTS" | tr ' ' '\n' | grep "^$1:" | cut -d: -f2; }
 LLOG="$TMPD/logic.log"
 
@@ -73,7 +73,7 @@ else
   HEBI_VERIFY_INSIDE_LEDGER=1 python3 "$HERE/tools/sabotage.py" >"$LLOG" 2>&1
   SB_RC=$?
   SB=$(sed -n 's/^rows: \([0-9]*\) fail: \([0-9]*\)$/\1\/\2/p' "$LLOG" | tail -1)
-  tail -8 "$LLOG"
+  cat "$LLOG"   # 逐把读数打进整闸日志：$LLOG 末尾会被 rm -f，不留下来就只有几行尾巴当证人
   if [ "$SB" != "$(pin_of sabotage)/0" ]; then
     echo "台账体量 ${SB:-未打印 rows:} != 钉的 $(pin_of sabotage)/0（rc=$SB_RC）—— 刀少了或某一刀没能把点名的断言逼红" >&2
     FAILED=1

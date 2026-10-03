@@ -73,8 +73,8 @@ KNIVES = [
     ('H14', '.github/workflows/ci.yml', '        run: python3 tools/sabotage.py',
      '        run: echo "ledger not wired"', ['doctest'], 'D6c'),
     # D11 那一组钉的是"门也在家门口"。这两把刀分别回答：钉漂了会不会红、调用被摘掉会不会红。
-    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:43 sabotage:17"',
-     'LOGIC_EXPECTS="doctest:41 sabotage:17"', ['doctest'], 'D11b'),
+    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:44 sabotage:17"',
+     'LOGIC_EXPECTS="doctest:42 sabotage:17"', ['doctest'], 'D11b'),
     ('H16', 'tools/verify.sh', 'node "$HERE/tools/doctest.mjs" >"$LLOG" 2>&1\n',
      '', ['doctest'], 'D11d'),
     ('N1', 'README.md', '一条规则要能被点名，才谈得上「推不出来时该怪谁」。',

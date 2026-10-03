@@ -244,15 +244,21 @@ const called = ['tools/engine-test.mjs', 'tools/doctest.mjs', 'tools/sabotage.py
   .filter((c) => callLines.some((l) => l.includes(c)));
 ok(called.length === 3, 'D11d verify.sh 里三道逻辑闸各有一条真调用（注释里提到不算调用）',
   called.join(' · ') || '一条都没有');
-const finalRows = rows + 2; // D11b 与 D11e 各是本闸的一项，它们排在最后
+const finalRows = rows + 3; // D11b、D11e、D11f 各是本闸的一项，它们排在最后
 ok(!!pins.doctest && +pins.doctest === finalRows,
-  `D11b verify.sh 钉的 doctest 项数 == 本闸实跑项数（${finalRows}，含 D11 这五条）`,
+  `D11b verify.sh 钉的 doctest 项数 == 本闸实跑项数（${finalRows}，含 D11 这六条）`,
   `钉 ${pins.doctest || '无'} · 实跑 ${finalRows}`);
 // README 那张逐枪表是台账对外的说法：刀加在源码里、表没跟着写，读文档的人就以为台账只有这些。
 const docKnives = [...new Set([...README.matchAll(/^\| (H\d+|N\d) \|/gm)].map((m) => m[1]))];
 ok(docKnives.length === knives,
   `D11e README 逐枪表解析到的刀数 == 台账源码现数的刀数（${knives}；解析到 ${docKnives.length} 行）`,
   docKnives.length ? `文档 ${docKnives.sort().join(' ')} vs 源码 ${knives}` : '表里一行都没解析到');
+// 文档里 `rows: N fail: 0` 那几处是"本闸本轮的读数"：它们是抄的，而抄的数没人核对就会漂
+// （DESIGN 里那两句带日志名的历史记录是某一轮的读数，不在这一处对账的范围内）。
+const docRows = [...new Set([...README.matchAll(/rows: (\d+) fail: 0/g)].map((m) => m[1]))];
+ok(docRows.length === 1 && docRows[0] === String(finalRows),
+  `D11f README 里 \`rows: N fail: 0\` 只出现一个 N，而且等于本闸实跑项数（${finalRows}）`,
+  docRows.length ? `文档 ${docRows.join('/')}` : '文档里一处 rows: 都没解析到（那就是把这几处删了）');
 
 console.log(`\n合计 ${rows} 项，${fail.length} 项失败`);
 console.log(`rows: ${rows} fail: ${fail.length}`);
