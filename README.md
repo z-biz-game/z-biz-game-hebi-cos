@@ -112,12 +112,14 @@ Pages 的 `/z-biz-game-hebi-cos/` 前缀），一份报告是脚本里一次 `ru
 | `npm run balance` → `node tools/balance.mjs` | 出货率、成本 p95、难度阶梯、铅笔的选择性（对着多解盘）、菜单那句「实测」 | `合计红线 0 条破口`，`BALANCE_RC=0` |
 | `bash tools/verify.sh` | 先跑三道逻辑闸（`engine-test` / `doctest` / 台账，条数钉在脚本的 `LOGIC_EXPECTS`），再上真 Chrome + CDP 真事件，读 DOM 文本/几何与画布像素，不读内部标志位 | `=== ALL GREEN ===`，28 份报告 / 604 条断言 / 0 失败，`VERIFY_RC=0` |
 | `GATE_SELFTEST=1 bash tools/verify.sh` | 每一份报告都必须吃下一条注定错的期望 | `rc=1`、28 行具名红（应有 28 份、实到 28 份、28 份点名），`SELFTEST_RC=1` |
-| `python3 tools/sabotage.py` | 上面每一行"会红"的说法：名单里的刀逐条下在副本上，红必须整段点名它承诺的那条等式 | `SAB_RC=0`，逐把读数在 `_tmp-hebi-verify-r1.log` |
+| `python3 tools/sabotage.py` | 上面每一行"会红"的说法：名单里的刀逐条下在副本上，红必须整段点名它承诺的那条等式 | `SAB_RC=0`，逐把读数在 `_tmp-hebi-verify-r3.log` |
 
-上面这一列的 rc 全写在同一份日志里：这一轮是 `_tmp-hebi-inrepo-r1.log`（本机 2 分 41 秒，`START=` /
-`END=` 两行是它的首尾，六个 rc 由各自那条命令写进去）。表里那些 ms 是从**同一次跑**抄来的读数：
-回填这些数字之后再重跑的，是 `doctest`（`_tmp-hebi-poststamp-r5.log`）与破坏试验台架
-（`_tmp-hebi-sab-run-r5.log`，对照两项印在这份日志的开头）——
+上面这一列的 rc 全写在同一份日志里：这一轮是 `_tmp-hebi-verify-r3.log`（`bash tools/verify.sh`
+自己那一份现场，`START=` / `END=` 两行是它的首尾，`VERIFY_RC=` 由那条命令追加进去，
+`HEAD=` 那一行说的是它跑在哪一棵树上）。这一族日志由 `.gitignore` 挡在仓外（`_tmp-*`），
+所以它不在 clone 里——它是"本机这一遍"的证人，任何人敲一遍上面那条命令就重新生成一份。
+表里那些 ms 是从**同一次跑**抄来的读数：回填这些数字之后再重跑的，是 `doctest` 与破坏试验台架
+（对照两项印在台账日志的开头）——
 因为没有任何闸比 ms，闸比的是步数、条数和等式。
 
 ### `npm test` 的逐尺寸读数（12 个 seed，`tools/engine-test.mjs`）
@@ -220,7 +222,7 @@ H13 是**命令刀**：它一个字段都不改，只把当年会空跑的那条
 每一遍整跑都把自己的读数写进它自己那份日志（`START=` / `END=` 是首尾，`VERIFY_RC=` 由那条命令追加进去），
 所以这一页只说"本轮绿"，不抄本轮的数：定稿树上 `bash tools/verify.sh` 的开头是三道逻辑闸各自的 ✓ 行
 （engine-test 0 项失败、doctest 0 项失败、台账每一把都点名了自己那条等式），末行 `=== ALL GREEN ===`；
-逐条的数——三道闸各自的条数、每一把刀的 rc 与它点名的那一行——住在 `_tmp-hebi-verify-r1.log` 里，
+逐条的数——三道闸各自的条数、每一把刀的 rc 与它点名的那一行——住在 `_tmp-hebi-verify-r3.log` 里，
 脚本把台账的 stdout 整段打进那份日志，不是只留几行尾巴。
 两颗条数钉也不在文档里重复一遍：它们只住在 `tools/verify.sh` 的 `LOGIC_EXPECTS` 一行上，
 由 `doctest` 的 `D11b`/`D11c`/`D11e` 反向核对（本闸项数、台账源码现数的刀数、逐枪表解析到的刀数）。
