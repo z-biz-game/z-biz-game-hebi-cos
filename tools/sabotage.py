@@ -72,6 +72,11 @@ KNIVES = [
     ('H12', 'README.md', '每形态 302 条', '每形态 300 条', ['doctest'], 'D8'),
     ('H14', '.github/workflows/ci.yml', '        run: python3 tools/sabotage.py',
      '        run: echo "ledger not wired"', ['doctest'], 'D6c'),
+    # D11 那一组钉的是"门也在家门口"。这两把刀分别回答：钉漂了会不会红、调用被摘掉会不会红。
+    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:43 sabotage:17"',
+     'LOGIC_EXPECTS="doctest:41 sabotage:17"', ['doctest'], 'D11b'),
+    ('H16', 'tools/verify.sh', 'node "$HERE/tools/doctest.mjs" >"$LLOG" 2>&1\n',
+     '', ['doctest'], 'D11d'),
     ('N1', 'README.md', '一条规则要能被点名，才谈得上「推不出来时该怪谁」。',
      '一条规则要能被点名，才谈得上「推不出来时该怪谁」。这一句是台账的对照组：它不承载任何数，改它不该让闸红。',
      ['doctest'], ''),
@@ -135,6 +140,9 @@ def main():
     for kid, envs, argv, want in CMD_KNIVES:
         recopy()
         env = dict(os.environ)
+        # 这把刀叫的是 tools/verify.sh，而 verify.sh 现在自己也叫台账（门从 CI 搬到家门口）。
+        # 不给嵌套那一层设哨兵就是 verify→sabotage→verify→…没有底。
+        env['HEBI_VERIFY_INSIDE_LEDGER'] = '1'
         env.update(envs)
         try:
             p = subprocess.run(argv, cwd=WORK, capture_output=True, text=True, env=env,

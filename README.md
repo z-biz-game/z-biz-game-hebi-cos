@@ -108,11 +108,11 @@ Pages 的 `/z-biz-game-hebi-cos/` 前缀），一份报告是脚本里一次 `ru
 | --- | --- | --- |
 | `npm run check` | 逐文件 `node --check`，含 `server.cjs` 与 `tools/` | `OK`，`CHECK_RC=0` |
 | `npm test` → `node tools/engine-test.mjs` | 判据 R1–R4 的反例、官方 5×5 上计数器与铅笔互相点头、三档各 12 个 seed 的出货不变量、同 seed 逐格相同 | `合计 127 项通过，0 项失败`，`ENGINE_RC=0` |
-| `node tools/doctest.mjs` | **文档本身**印出去的数与代码/脚本里的现值（三档表、10 条规则名、腿×形态、端口、计数预算、CI 覆盖表、`SAMPLES` 旋钮、台账的接线） | `rows: 38 fail: 0`，`DOCTEST_RC=0` |
+| `node tools/doctest.mjs` | **文档本身**印出去的数与代码/脚本里的现值（三档表、10 条规则名、腿×形态、端口、计数预算、CI 覆盖表、`SAMPLES` 旋钮、台账的接线） | `rows: 43 fail: 0`，`DOCTEST_RC=0` |
 | `npm run balance` → `node tools/balance.mjs` | 出货率、成本 p95、难度阶梯、铅笔的选择性（对着多解盘）、菜单那句「实测」 | `合计红线 0 条破口`，`BALANCE_RC=0` |
-| `bash tools/verify.sh` | 真 Chrome + CDP 真事件，读 DOM 文本/几何与画布像素，不读内部标志位 | `=== ALL GREEN ===`，28 份报告 / 604 条断言 / 0 失败，`VERIFY_RC=0` |
+| `bash tools/verify.sh` | 先跑三道逻辑闸（`engine-test` / `doctest` / 台账，条数钉在脚本的 `LOGIC_EXPECTS`），再上真 Chrome + CDP 真事件，读 DOM 文本/几何与画布像素，不读内部标志位 | `=== ALL GREEN ===`，28 份报告 / 604 条断言 / 0 失败，`VERIFY_RC=0` |
 | `GATE_SELFTEST=1 bash tools/verify.sh` | 每一份报告都必须吃下一条注定错的期望 | `rc=1`、28 行具名红（应有 28 份、实到 28 份、28 份点名），`SELFTEST_RC=1` |
-| `python3 tools/sabotage.py` | 上面每一行"会红"的说法：15 把刀逐条下在副本上，红必须整段点名它承诺的那条等式 | `rows: 15 fail: 0`，`SAB_RC=0` |
+| `python3 tools/sabotage.py` | 上面每一行"会红"的说法：17 把刀逐条下在副本上，红必须整段点名它承诺的那条等式 | `rows: 17 fail: 0`，`SAB_RC=0` |
 
 上面这一列的 rc 全写在同一份日志里：这一轮是 `_tmp-hebi-inrepo-r1.log`（本机 2 分 41 秒，`START=` /
 `END=` 两行是它的首尾，六个 rc 由各自那条命令写进去）。表里那些 ms 是从**同一次跑**抄来的读数：
@@ -207,8 +207,8 @@ save 16 / nav 4 / resume 18 / reload 4 / corrupt 9，每形态 302 条 · 合计
 | 坏档 = 没有存档，不是白屏 | 浏览器 `corrupt` 腿 | 种入脏字段后的第一帧 | `9 条 0 失败` |
 | 两种 URL 形态都算数 | `tools/verify.sh` 的 preflight + 腿循环 | 前缀形态与根形态各自 serve 本仓字节 | `2 个形态 · 28 份报告` |
 | 闸自己会红——每一份报告都会红 | `GATE_SELFTEST=1` 那一步 | 分母由 `LEGS` 现算，没种上错期望的报告点名 | `rc=1`、`28 行具名红` |
-| 文档印的数就是代码里的现值 | `node tools/doctest.mjs` | 三档表 / 10 条规则名 / 腿×形态 / 端口 / 预算 / CI 覆盖表 / `SAMPLES` / 台账的接线 | `rows: 38 fail: 0` |
-| 台账每把刀红在它点名的那条等式上，而且有人跑它 | `tools/sabotage.py`（本轮从仓外搬进仓里；CI browser job 的一步，`npm run sabotage` 也调得到） | 副本上下刀 → 只跑它所属那道闸 → 点名行必须**整段等于**这把刀写的那条；"有人跑它"这句话由 H14 砍 CI 那一步来红 | 15 把逐条点名，见 §破坏试验台账 |
+| 文档印的数就是代码里的现值 | `node tools/doctest.mjs` | 三档表 / 10 条规则名 / 腿×形态 / 端口 / 预算 / CI 覆盖表 / `SAMPLES` / 台账的接线 / 家门口的钉 | `rows: 43 fail: 0` |
+| 台账每把刀红在它点名的那条等式上，而且有人跑它 | `tools/sabotage.py`（本轮从仓外搬进仓里；CI browser job 的一步，`npm run sabotage` 也调得到） | 副本上下刀 → 只跑它所属那道闸 → 点名行必须**整段等于**这把刀写的那条；"有人跑它"这句话由 H14 砍 CI 那一步来红 | 17 把逐条点名，见 §破坏试验台账 |
 
 ## 破坏试验台账
 
@@ -217,16 +217,15 @@ save 16 / nav 4 / resume 18 / reload 4 / corrupt 9，每形态 302 条 · 合计
 H13 是**命令刀**：它一个字段都不改，只把当年会空跑的那条命令在未改动的副本上照敲一遍——
 "这个洞堵上了"要有人敲给它听，不能只写在表里。
 刀跑之前先跑**对照**：未改动的副本上 `doctest` 与 `balance` 都必须绿，否则"红了"说明不了是刀咬的。
-本轮整跑：**15 枪 / 与预期不符 0 / `SAB_RC=0`**（`_tmp-hebi-inrepo-r1.log` 的第 7 段，
-对照两项 `rows: 38 fail: 0` 与 `合计红线 0 条破口` 就印在这一段的开头）。
-r1 之后文档又被这些读数回填了一遍，于是定稿树上又跑了两遍：`_tmp-hebi-inrepo-r2.log` 读到
-`doctest rows: 38 fail: 0`、`npm test 127/0`、`合计 15 枪 · 与预期不符 0`、`SAB_RC=0`；
-把"还有第三遍"这句话本身写进文档之后再跑一遍，是 `_tmp-hebi-inrepo-r3.log`（本机 63 秒，
-三个 rc 全 0）；把上面那段 CI 读数写进文档之后又跑了一遍，是 `_tmp-hebi-inrepo-r5.log`
-（63 秒，同样 `doctest 38/0`、`127/0`、15 枪 / 0 / `SAB_RC=0`）；把这一段"循环没有尽头"的话写进树里
-之后再跑的那一遍是 `_tmp-hebi-inrepo-r6.log`，它读回来的数与这一页印的字面一模一样
-（`doctest rows: 38 fail: 0`、`合计 127 项通过，0 项失败`、`合计 15 枪 · 与预期不符 0`、`SAB_RC=0`），
-所以 commit 里的那棵树就是被量过的那棵树。这一圈循环没有尽头——
+每一遍整跑都把自己的读数写进它自己那份日志（`START=` / `END=` 是首尾，`VERIFY_RC=` 由那条命令追加进去），
+所以这一页只留**本轮**的数：定稿树上 `bash tools/verify.sh` 打印的三行是
+`逻辑闸 engine-test：127 项通过、0 项失败 ✓`、`逻辑闸 doctest：43 项、0 项失败 ✓`、
+`台账：17 把刀各自逼红了点名的断言 ✓`，末行 `=== ALL GREEN ===`，现场在 `_tmp-hebi-verify-r1.log`。
+这两颗条数钉不在文档里重复一遍：它们只住在 `tools/verify.sh` 的 `LOGIC_EXPECTS` 一行上，
+由 `doctest` 的 `D11b`/`D11c`/`D11e` 反向核对（本闸项数、台账源码现数的刀数、逐枪表解析到的刀数）。
+这一圈循环没有尽头——每一遍的树里都带着上一遍的引用——所以它由两条东西兜住：
+N1 那一枪证明"往文档里插一句不带数的散文"不让闸红，而 CI 每次都会重跑这份台账，
+下一句引用如果弄坏了哪把刀的 needle，台账会直接报 `ERROR`（needle 必须恰好命中 1 次）。
 每一遍的树里都带着上一遍的引用——所以它由两条东西兜住：
 N1 那一枪证明"往文档里插一句不带数的散文"不让闸红，而 CI 每次都会重跑这份台账，
 下一句引用如果弄坏了哪把刀的 needle，台账会直接报 `ERROR`（needle 必须恰好命中 1 次）。
@@ -261,7 +260,9 @@ CI 上那一遍也留下读数：run `37118072944` 的 browser job 第 6 步用 
 | H12 | README 的每形态条数 302 改成 300 | 红 | 红 `D8` | `doctest` 的 `D8`（逐腿条数加起来必须等于它自己写的两个总数） |
 | H13 | 不改文件，把当年空跑的那条命令照敲一遍：`LEGS=hint bash tools/verify.sh` | 红，且要点名「未知的腿」 | `rc=1` · `RED 未知的腿：hint` | `verify.sh` 的 `*)` 分支（命令刀：补闸之前这一枪打出的是 `=== ALL GREEN ===` 加 0 份报告） |
 | H14 | 把台账在 CI browser job 里那一步换成 `echo "ledger not wired"`（台架还在、没人跑它） | 红 | 红 `D6` `D6c` | `doctest` 的 `D6c`（四处接线各读一遍：ci / package.json / README / 这把刀本身） |
-| N1 | README 的难点小节里插一句不承载任何数的散文 | 不该红 | 不红（`rows: 38 fail: 0`） | —（对照组：台账也得证明它不咬无关的话） |
+| H15 | `tools/verify.sh` 的 `LOGIC_EXPECTS` 把 doctest 那一项钉小 1 | 红 | 红 `D11b` | `doctest` 的 `D11b`（家门口的钉与本闸实跑项数不是同一个数） |
+| H16 | 摘掉 `tools/verify.sh` 里跑 doctest 的那一行调用 | 红 | 红 `D11d` | `doctest` 的 `D11d`（三道逻辑闸少了一条真调用；注释里提到路径不算调用） |
+| N1 | README 的难点小节里插一句不承载任何数的散文 | 不该红 | 不红（`rows: 43 fail: 0`） | —（对照组：台账也得证明它不咬无关的话） |
 
 台账自己教的四件事：
 

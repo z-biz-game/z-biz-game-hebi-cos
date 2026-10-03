@@ -222,6 +222,38 @@ ok(missing.length === 0, 'D10 文档点名的每条红线在 balance.mjs 里都�
 ok(undocumented.length === 0, 'D10b balance.mjs 里每条红线都被文档点名（新增红线不能没人写）',
   undocumented.length ? `没写进文档：${undocumented.join(' ')}` : '一一对上');
 
+// ---- D11 家门口的门：verify.sh 必须跑这三道逻辑闸，而且钉的条数与实跑一致 ----
+// 补的是「门只在 CI 里跑」这个缺陷：CI 的 check job 有 engine-test 与 doctest 两步、browser job
+// 有台账一步，而本地那道 one-shot 以前一步都不跑——改闸的人在自己机器上看见的绿，是另一套。
+// D11a 先数解析到几颗钉：读不到那一行时后面三条都会变成"什么都不比较"的空转绿。
+const pinBlock = (VERIFY.match(/^LOGIC_EXPECTS="([^"]+)"/m) || [])[1] || '';
+const pins = Object.fromEntries(pinBlock.split(/\s+/).filter(Boolean).map((kv) => kv.split(':')));
+ok(Object.keys(pins).length === 2 && !!pins.doctest && !!pins.sabotage,
+  'D11a verify.sh 的 LOGIC_EXPECTS 解析到且只解析到两颗钉（doctest 与 sabotage）',
+  pinBlock || 'verify.sh 里没有 LOGIC_EXPECTS 那一行');
+const knives = (SAB.match(/^\s{4}\('(H\d+|N\d)',/gm) || []).length;
+ok(!!pins.sabotage && +pins.sabotage === knives,
+  'D11c verify.sh 钉的刀数 == 台账源码里现数的刀数（加一把刀要两边一起走）',
+  `钉 ${pins.sabotage || '无'} · 现数 ${knives}`);
+// 行首的环境变量赋值（台账那一条就是 `HEBI_VERIFY_INSIDE_LEDGER=1 python3 …`）先剥掉再判，
+// 但注释行仍然落在门外：注释里提到路径不等于真的调了。
+const callLines = VERIFY.split('\n')
+  .map((l) => l.replace(/^\s*(?:[A-Z][A-Z0-9_]*=\S*\s+)+/, ''))
+  .filter((l) => /^(node|python3)\s/.test(l));
+const called = ['tools/engine-test.mjs', 'tools/doctest.mjs', 'tools/sabotage.py']
+  .filter((c) => callLines.some((l) => l.includes(c)));
+ok(called.length === 3, 'D11d verify.sh 里三道逻辑闸各有一条真调用（注释里提到不算调用）',
+  called.join(' · ') || '一条都没有');
+const finalRows = rows + 2; // D11b 与 D11e 各是本闸的一项，它们排在最后
+ok(!!pins.doctest && +pins.doctest === finalRows,
+  `D11b verify.sh 钉的 doctest 项数 == 本闸实跑项数（${finalRows}，含 D11 这五条）`,
+  `钉 ${pins.doctest || '无'} · 实跑 ${finalRows}`);
+// README 那张逐枪表是台账对外的说法：刀加在源码里、表没跟着写，读文档的人就以为台账只有这些。
+const docKnives = [...new Set([...README.matchAll(/^\| (H\d+|N\d) \|/gm)].map((m) => m[1]))];
+ok(docKnives.length === knives,
+  `D11e README 逐枪表解析到的刀数 == 台账源码现数的刀数（${knives}；解析到 ${docKnives.length} 行）`,
+  docKnives.length ? `文档 ${docKnives.sort().join(' ')} vs 源码 ${knives}` : '表里一行都没解析到');
+
 console.log(`\n合计 ${rows} 项，${fail.length} 项失败`);
 console.log(`rows: ${rows} fail: ${fail.length}`);
 if (fail.length) {
