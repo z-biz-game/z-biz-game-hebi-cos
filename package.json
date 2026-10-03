@@ -9,7 +9,8 @@
     "test": "node tools/engine-test.mjs",
     "balance": "node tools/balance.mjs",
     "check": "for f in $(find js tools -type f \\( -name \"*.js\" -o -name \"*.mjs\" -o -name \"*.cjs\" \\) | sort); do node --check \"$f\" || exit 1; done && echo OK",
-    "doctest": "node tools/doctest.mjs"
+    "doctest": "node tools/doctest.mjs",
+    "sabotage": "python3 tools/sabotage.py"
   },
   "keywords": [
     "game",

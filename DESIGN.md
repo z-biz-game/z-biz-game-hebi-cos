@@ -127,6 +127,14 @@ README 台账的 H4（把正文那次出现改名）才真的红。逐把刀的�
 `GATE_SELFTEST=1` `rc=1`、28 行具名红（632 条断言里 28 条失败，对数表读出「应有 28 份报告，实到 28 份，
 其中 28 份点名吃下了种下的错」）。
 
+那一遍之后台账搬进了仓里（`tools/sabotage.py`，接进 CI 的 browser job），闸多了一条 `D6c`，
+所以全套重跑的一遍是 `_tmp-hebi-inrepo-r1.log`：`npm test` 127/0、`check` OK、`doctest` `rows: 38 fail: 0`、
+`balance` 红线 0 条破口、`verify.sh` 28 份报告 / 604 条断言 / 0 失败、`GATE_SELFTEST=1` `rc=1` 且 28 行具名红、
+`python3 tools/sabotage.py` 15 枪 / 与预期不符 0 / `SAB_RC=0`。回填这些读数之后在定稿树上又跑了两遍：
+`_tmp-hebi-inrepo-r2.log` 与 `_tmp-hebi-inrepo-r3.log`（后者 63 秒，`doctest 38/0`、`npm test 127/0`、
+台账 15 枪 / 0 / `SAB_RC=0`）。为什么没有"最后一遍"：每一遍都会把它的引用写回文档，
+所以这一圈由 N1 那一枪（插一句不带数的散文不许让闸红）与 CI 每次重跑台账来兜住。
+
 ## 不承诺
 
 以下说法**没有任何闸守住**，因此本仓的文档与页面都不主张它们（写了就是拿文案冒充测量）：

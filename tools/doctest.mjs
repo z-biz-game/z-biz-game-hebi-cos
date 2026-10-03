@@ -11,7 +11,7 @@
 //   * 只比现值，不比读数：ms、出货率、节点数这类本机测量在这里只作为「文档写的数
 //     与代码里的界」的关系出现（D5），不去复测它们；
 //   * 破坏试验台账（README 最后一节）逐条验过这里的刀真的会红。
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -141,6 +141,19 @@ const ciCommands = [...CI.matchAll(/node tools\/([\w.-]+\.mjs)/g)].map((m) => m[
 const unlisted = [...new Set(ciCommands)].filter((c) => ![...ciRows].some((r) => r[1].includes(c)));
 ok(unlisted.length === 0, 'D6b ci.yml 里跑的每个 tools 门禁都被覆盖表列了（文档不许比门禁松）',
   unlisted.length ? `漏了：${unlisted.join(' ')}` : `runner 里 ${[...new Set(ciCommands)].join(' ')} 全在表上`);
+
+// D6c 钉的是"有人跑台账"这句话本身。台账是个文件，文件躺在仓里不等于 CI 会跑它——
+// 所以四处各查一遍，缺任何一处就红，而 H14 这把刀砍的正是 CI 里那一步（少了它 D6c 必须自己变红）。
+const SAB = existsSync(join(ROOT, 'tools/sabotage.py')) ? read('tools/sabotage.py') : '';
+const sabWires = {
+  ci: /run: python3 tools\/sabotage\.py/.test(jobBlocks.browser || ''),
+  pkg: ((PKG.scripts || {}).sabotage || '').trim() === 'python3 tools/sabotage.py',
+  readme: /python3 tools\/sabotage\.py/.test(README),
+  knife: /'D6c'/.test(SAB),
+};
+ok(Object.values(sabWires).every(Boolean),
+  'D6c 破坏台账接进了 browser job、package.json 与 README，而且这条接线自己有一把刀（砍掉任何一处它就只是一段代码）',
+  Object.entries(sabWires).map(([k, v]) => `${k}=${v ? '在' : '缺'}`).join(' · ') + (SAB ? '' : ' · 台架文件不在树里'));
 
 // ---- D7 SAMPLES 旋钮：ci.yml 的值 == 文档引用的值 == 不接线时的默认，且 env 真的接得上 ----
 const ciSamples = (CI.match(/SAMPLES: "(\d+)"/) || [])[1];
