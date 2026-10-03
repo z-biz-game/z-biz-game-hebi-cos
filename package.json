@@ -10,7 +10,9 @@
     "balance": "node tools/balance.mjs",
     "check": "for f in $(find js tools -type f \\( -name \"*.js\" -o -name \"*.mjs\" -o -name \"*.cjs\" \\) | sort); do node --check \"$f\" || exit 1; done && echo OK",
     "doctest": "node tools/doctest.mjs",
-    "sabotage": "python3 tools/sabotage.py"
+    "sabotage": "python3 tools/sabotage.py",
+    "deploy-set": "node tools/deploy-set.mjs",
+    "deploy-set:selftest": "node tools/deploy-set-selftest.mjs"
   },
   "keywords": [
     "game",
