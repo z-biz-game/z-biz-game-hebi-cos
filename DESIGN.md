@@ -144,8 +144,8 @@ README 台账的 H4（把正文那次出现改名）才真的红。逐把刀的�
   因此「音效由 WebAudio 合成」不写进 README。
 - **「零美术/零资产文件」没有计数闸。** CI 的 `Entry files exist` 只查 `index.html` 里有
   `<canvas`、`js/main.js`、`hebi` 三个记号（`.github/workflows/ci.yml:49`）；
-  Pages 只上传 `index.html`、`css`、`js`（`.github/workflows/pages.yml:29`、
-  `.github/workflows/pages.yml:30`）。本轮 `find` 没找到 png/mp3/wav/svg/woff，但这是**一次人工观察**。
+  Pages 上传的是 `tools/assemble-site.sh` 拷出来的那份产物（清单只有这一份，`.github/workflows/pages.yml`
+  与本地 `node tools/deploy-set.mjs` 调的是同一支脚本）。本轮 `find` 没找到 png/mp3/wav/svg/woff，但这是**一次人工观察**。
 - **10 条铅笔规则是否每条都真的会开火，没量。** `js/engine/pencil.js:14` 把「8x8 以上推不完」
   归因到 `P0-区` 这条禁用，并指名要 DESIGN 写「不承诺」——这条**归因**没有任何闸量过。
   实测到的只有：`hint` 腿本轮用完一局 6×6 只开了 4 条
