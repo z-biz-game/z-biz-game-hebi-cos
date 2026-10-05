@@ -90,6 +90,14 @@ function nonNegInt(v) {
   return isInt(v) && v >= 0 && v <= 1e12 ? v : null;
 }
 
+// size 有两种合法形态：recordBest 写进去的 "5×5" 字符串（菜单纪录直接打印它），
+// 以及历史档里的整数。只认整数会把前者洗成 0——纪录还在，尺寸那一行却变成了谎话。
+function validSize(v) {
+  const n = nonNegInt(v);
+  if (n !== null) return n;
+  return typeof v === 'string' && /^\d{1,3}×\d{1,3}$/.test(v) ? v : 0;
+}
+
 function validBest(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
   const out = {};
@@ -99,9 +107,9 @@ function validBest(raw) {
     const hints = nonNegInt(b.hints);
     const moves = nonNegInt(b.moves);
     if (ms === null || hints === null || moves === null) continue;
-    const size = nonNegInt(b.size);
+    const size = validSize(b.size);
     const at = nonNegInt(b.at);
-    out[tier] = { ms, hints, moves, size: size === null ? 0 : size, at: at === null ? 0 : at };
+    out[tier] = { ms, hints, moves, size, at: at === null ? 0 : at };
   }
   return out;
 }
