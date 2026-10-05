@@ -92,7 +92,20 @@ button.primary {
 }
 
 button.ghost { background: transparent; }
-button.link { background: none; border: none; color: var(--ink-dim); text-decoration: underline; padding: 0; min-height: 0; }
+/* link 只该去掉"像个按钮"，不该去掉拇指的地板：min-height:0 会让它是全仓唯一 <44px 的命中目标。
+   多出来的高度不可见（background:none、border:none），所以这里放大的是命中盒不是版面。 */
+button.link {
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+  text-decoration: underline;
+  padding: 0;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 button[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); }
 
 /* ---------- views ---------- */
@@ -177,7 +190,7 @@ button[aria-pressed='true'] { border-color: var(--accent); background: var(--acc
   font-size: 12px;
   padding: 4px 9px;
   border-radius: var(--radius-chip);
-  background: var(--surfaceLift);
+  background: var(--surface-lift);
   border: 1px solid var(--line);
   color: var(--ink-dim);
 }
