@@ -16,7 +16,6 @@ export function createIntegrator({ step = SIM_STEP, onStep = () => {}, onClock =
   let last = null;
   let accum = 0;
   let total = 0;
-  let clockMs = 0;
 
   return {
     // ts：rAF 的 DOMHighResTimeStamp（毫秒）。advanceClock=false 时（暂停/已胜）钟不走、
@@ -24,10 +23,9 @@ export function createIntegrator({ step = SIM_STEP, onStep = () => {}, onClock =
     frame(ts, advanceClock = true) {
       const dt = last === null ? 0 : Math.min(MAX_FRAME_DT, Math.max(0, (ts - last) / 1000));
       last = ts;
-      if (advanceClock && dt > 0) {
-        clockMs += dt * 1000;
-        onClock(dt * 1000);
-      }
+      // onClock 是钟的唯一出口：这里自己再留一份 clockMs 副本的话，副本没人读，
+      // "钟随帧率跑"这种缺陷就再也没有一行可以被对拍定罪（2026-10-05 实测：改副本必绿）。
+      if (advanceClock && dt > 0) onClock(dt * 1000);
       accum += dt;
       let n = 0;
       while (accum >= step && n < MAX_CATCHUP_STEPS) {
@@ -45,9 +43,6 @@ export function createIntegrator({ step = SIM_STEP, onStep = () => {}, onClock =
     },
     get steps() {
       return total;
-    },
-    get clockMs() {
-      return clockMs;
     },
     pending() {
       return accum;
