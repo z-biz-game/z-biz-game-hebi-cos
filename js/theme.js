@@ -57,7 +57,10 @@ export const Motion = {
   ease: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
 };
 
-export const Cell = { min: 26, max: 62, numScale: 0.34, arrowScale: 0.3 };
+// min 是拇指地板，不是审美参数：44 CSS px 是判据"≥44px 命中区"里玩家真正按的那个目标
+// （盘面格子是本仓唯一的主要命中目标，HTML 按钮那 44px 管不到它）。
+// 装得下就放大到 max，装不下由 #board-scroll 横向滚动兜住——宁可滚，不可点不准。
+export const Cell = { min: 44, max: 62, numScale: 0.34, arrowScale: 0.3 };
 
 // Arrow glyph per clue direction. One table for the canvas and for the DOM, so a hint sentence
 // and the picture cannot spell the same clue two different ways.

@@ -185,16 +185,29 @@ button[aria-pressed='true'] { border-color: var(--accent); background: var(--acc
 #board-wrap {
   position: relative;
   align-self: center;
+  max-width: 100%;
   border-radius: var(--radius-card);
   border: 1px solid var(--line);
   background: var(--surface);
   padding: 6px;
 }
+
+/* 44px 拇指地板（theme.js 的 Cell.min）抬起来之后，8×8 在窄屏上比可视区宽：
+   这一层负责"装不下就横滚"，而不是把格子缩回掷硬币尺寸。position:relative 是必需的——
+   它是 #fx 的包含块，层与盘必须一起滚，否则滚一下光环就落在隔壁格上。 */
+#board-scroll {
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
 #board { display: block; touch-action: manipulation; border-radius: var(--radius-card); position: relative; z-index: 1; }
 #board:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* 反馈层：叠在盘上、不吃输入。位置由 js/fx/layer.js 按 view.geo 写成 10px（板心偏移），
-   所以这里只定"贴在 wrap 内沿 + 不参与命中"这两件事。 */
+   所以这里只定"贴在 #board-scroll 内沿 + 不参与命中"这两件事。 */
 .fx-layer {
   position: absolute;
   left: 0;
