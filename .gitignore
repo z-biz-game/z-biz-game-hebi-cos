@@ -3,3 +3,4 @@ _tmp-verify/
 node_modules/
 .DS_Store
 _sabotage-copy/
+_scratch/
