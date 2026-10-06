@@ -73,10 +73,19 @@ KNIVES = [
     ('H14', '.github/workflows/ci.yml', '        run: python3 tools/sabotage.py',
      '        run: echo "ledger not wired"', ['doctest'], 'D6c'),
     # D11 那一组钉的是"门也在家门口"。这两把刀分别回答：钉漂了会不会红、调用被摘掉会不会红。
-    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:46 sabotage:17"',
-     'LOGIC_EXPECTS="doctest:45 sabotage:17"', ['doctest'], 'D11b'),
+    # 这把刀的 needle 里带着那两个数，是故意的：加/删一条断言的人若忘了同时改 verify.sh 的钉，
+    # 这一枪不会静默跳过，而是以 `needle 出现 0 次` 的 ERROR 点名他——本轮 46→47、17→19 就是这么被抓出来的。
+    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:47 sabotage:19"',
+     'LOGIC_EXPECTS="doctest:46 sabotage:19"', ['doctest'], 'D11b'),
     ('H16', 'tools/verify.sh', 'node "$HERE/tools/doctest.mjs" >"$LLOG" 2>&1\n',
      '', ['doctest'], 'D11d'),
+    # D6d 的两半各一把刀：一把砍"CI 只许调 leg"，一把砍"leg 的根要盖住树"。都是同行内联替换，
+    # 不增减行数——插一行就挪了 ci.yml 的行号，文档里那几处 `ci.yml:26` 会一起漂。
+    ('H17', '.github/workflows/ci.yml', 'npm run check   # 这一步原先手抄了三份 for-loop',
+     "for f in $(git ls-files 'js/*.js'); do node --check \"$f\" || exit 1; done   #",
+     ['doctest'], 'D6d'),
+    ('H18', 'package.json', 'find js tools server.cjs sw.js -type f',
+     'find tools server.cjs sw.js -type f', ['doctest'], 'D6d'),
     ('N1', 'README.md', '一条规则要能被点名，才谈得上「推不出来时该怪谁」。',
      '一条规则要能被点名，才谈得上「推不出来时该怪谁」。这一句是台账的对照组：它不承载任何数，改它不该让闸红。',
      ['doctest'], ''),

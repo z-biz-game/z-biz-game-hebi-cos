@@ -106,9 +106,9 @@ Pages 的 `/z-biz-game-hebi-cos/` 前缀），一份报告是脚本里一次 `ru
 
 | 命令 | 它比的是什么 | 本轮读数（rc 写进工件，不是管道尾巴） |
 | --- | --- | --- |
-| `npm run check` | 逐文件 `node --check`，含 `server.cjs` 与 `tools/` | `OK`，`CHECK_RC=0` |
+| `npm run check` | 逐文件 `node --check`，find 根为 `js/` `tools/` `server.cjs` `sw.js`（`D6d` 钉住"树上没有落在根外的源码文件"） | `OK`，`CHECK_RC=0` |
 | `npm test` → `node tools/engine-test.mjs` | 判据 R1–R4 的反例、官方 5×5 上计数器与铅笔互相点头、三档各 12 个 seed 的出货不变量、同 seed 逐格相同 | `合计 127 项通过，0 项失败`，`ENGINE_RC=0` |
-| `node tools/doctest.mjs` | **文档本身**印出去的数与代码/脚本里的现值（三档表、10 条规则名、腿×形态、端口、计数预算、CI 覆盖表、`SAMPLES` 旋钮、台账的接线） | `rows: 46 fail: 0`，`DOCTEST_RC=0` |
+| `node tools/doctest.mjs` | **文档本身**印出去的数与代码/脚本里的现值（三档表、10 条规则名、腿×形态、端口、计数预算、CI 覆盖表、`SAMPLES` 旋钮、台账的接线） | `rows: 47 fail: 0`，`DOCTEST_RC=0` |
 | `npm run balance` → `node tools/balance.mjs` | 出货率、成本 p95、难度阶梯、铅笔的选择性（对着多解盘）、菜单那句「实测」 | `合计红线 0 条破口`，`BALANCE_RC=0` |
 | `bash tools/verify.sh` | 先跑三道逻辑闸（`engine-test` / `doctest` / 台账，条数钉在脚本的 `LOGIC_EXPECTS`），再上真 Chrome + CDP 真事件，读 DOM 文本/几何与画布像素，不读内部标志位 | `=== ALL GREEN ===`，28 份报告 / 604 条断言 / 0 失败，`VERIFY_RC=0` |
 | `GATE_SELFTEST=1 bash tools/verify.sh` | 每一份报告都必须吃下一条注定错的期望 | `rc=1`、28 行具名红（应有 28 份、实到 28 份、28 份点名），`SELFTEST_RC=1` |
@@ -182,8 +182,11 @@ save 16 / nav 4 / resume 18 / reload 4 / corrupt 9，每形态 302 条 · 合计
 | `node tools/deploy-set.mjs` | check | `Deploy set gate` |
 | `node tools/deploy-set-selftest.mjs` | check | `Deploy set gate proves it can fail` |
 
-`npm run check` 的等价物（逐文件 `node --check`）在 `check` job 的 `Syntax check every source` 一步，
-`Entry files exist` 只查 `index.html` 里的三个记号，两者都不是"门禁命令"，所以不进上面那张表。
+语法在 CI 里就是调 `npm run check` 本身（`check` job 的 `Syntax check every source` 一步）。这一步以前手抄
+三份 `for f in $(git ls-files …)` 循环，那三份和 leg 的 find 根**都**不含根目录的 `sw.js`——一份解析不了的
+服务工作脚本因此能在两道闸都绿的情况下上线，本轮把它补进 leg 的根，并用 `D6d` 同时钉住"CI 只调 leg"与
+"树上每个 `.js/.mjs/.cjs` 都落在某个根里"。`Entry files exist` 只查 `index.html` 里的三个记号，
+这两步都不是新增的门禁命令，所以不进上面那张表。
 
 ---
 
@@ -211,7 +214,7 @@ save 16 / nav 4 / resume 18 / reload 4 / corrupt 9，每形态 302 条 · 合计
 | 坏档 = 没有存档，不是白屏 | 浏览器 `corrupt` 腿 | 种入脏字段后的第一帧 | `9 条 0 失败` |
 | 两种 URL 形态都算数 | `tools/verify.sh` 的 preflight + 腿循环 | 前缀形态与根形态各自 serve 本仓字节 | `2 个形态 · 28 份报告` |
 | 闸自己会红——每一份报告都会红 | `GATE_SELFTEST=1` 那一步 | 分母由 `LEGS` 现算，没种上错期望的报告点名 | `rc=1`、`28 行具名红` |
-| 文档印的数就是代码里的现值 | `node tools/doctest.mjs` | 三档表 / 10 条规则名 / 腿×形态 / 端口 / 预算 / CI 覆盖表 / `SAMPLES` / 台账的接线 / 家门口的钉 | `rows: 46 fail: 0` |
+| 文档印的数就是代码里的现值 | `node tools/doctest.mjs` | 三档表 / 10 条规则名 / 腿×形态 / 端口 / 预算 / CI 覆盖表 / `SAMPLES` / 台账的接线 / 家门口的钉 | `rows: 47 fail: 0` |
 | 台账每把刀红在它点名的那条等式上，而且有人跑它 | `tools/sabotage.py`（本轮从仓外搬进仓里；CI browser job 的一步，`npm run sabotage` 也调得到） | 副本上下刀 → 只跑它所属那道闸 → 点名行必须**整段等于**这把刀写的那条；"有人跑它"这句话由 H14 砍 CI 那一步来红 | 名单里的刀逐条点名（D11c/D11e 现数对账），见 §破坏试验台账 |
 
 ## 破坏试验台账
@@ -264,7 +267,9 @@ CI 上那一遍也留下读数：run `37118072944` 的 browser job 第 6 步用 
 | H14 | 把台账在 CI browser job 里那一步换成 `echo "ledger not wired"`（台架还在、没人跑它） | 红 | 红 `D6` `D6c` | `doctest` 的 `D6c`（四处接线各读一遍：ci / package.json / README / 这把刀本身） |
 | H15 | `tools/verify.sh` 的 `LOGIC_EXPECTS` 把 doctest 那一项钉小 1 | 红 | 红 `D11b` | `doctest` 的 `D11b`（家门口的钉与本闸实跑项数不是同一个数） |
 | H16 | 摘掉 `tools/verify.sh` 里跑 doctest 的那一行调用 | 红 | 红 `D11d` | `doctest` 的 `D11d`（三道逻辑闸少了一条真调用；注释里提到路径不算调用） |
-| N1 | README 的难点小节里插一句不承载任何数的散文 | 不该红 | 不红（`rows: 46 fail: 0`） | —（对照组：台账也得证明它不咬无关的话） |
+| H17 | `ci.yml` 的 Syntax 那一步从 `npm run check` 换回手抄的 `for` 循环（同一行内替换，不挪行号） | 红 | 红 `D6d` | `doctest` 的 `D6d` 的前半：那一步只许调那条 leg |
+| H18 | `package.json` 的 `check` leg 把 `js` 从 find 根里删掉（其余不动） | 红 | 红 `D6d` | `doctest` 的 `D6d` 的后半：树上每个 `.js/.mjs/.cjs` 都必须落在某个根里 |
+| N1 | README 的难点小节里插一句不承载任何数的散文 | 不该红 | 不红（`rows: 47 fail: 0`） | —（对照组：台账也得证明它不咬无关的话） |
 
 台账自己教的四件事：
 

@@ -11,7 +11,7 @@
 //   * 只比现值，不比读数：ms、出货率、节点数这类本机测量在这里只作为「文档写的数
 //     与代码里的界」的关系出现（D5），不去复测它们；
 //   * 破坏试验台账（README 最后一节）逐条验过这里的刀真的会红。
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -141,6 +141,27 @@ const ciCommands = [...CI.matchAll(/node tools\/([\w.-]+\.mjs)/g)].map((m) => m[
 const unlisted = [...new Set(ciCommands)].filter((c) => ![...ciRows].some((r) => r[1].includes(c)));
 ok(unlisted.length === 0, 'D6b ci.yml 里跑的每个 tools 门禁都被覆盖表列了（文档不许比门禁松）',
   unlisted.length ? `漏了：${unlisted.join(' ')}` : `runner 里 ${[...new Set(ciCommands)].join(' ')} 全在表上`);
+
+// ---- D6d 语法那一步只许调 leg，而且 leg 自己的根要真的盖住树 ----
+// 这一步以前手抄了三份 `for f in $(git ls-files …)` 循环。抄本的坏处不是啰嗦，是"两份真相"：
+// leg 改了抄本不会跟着红。更糟的是抄本自己漏东西——根目录的 `sw.js` 既不在那三份的 glob 里，
+// 也不在 `check` leg 的 find 根里，于是一份解析不了的服务工作脚本能一路绿到上线（本轮实测）。
+const syntaxStep = (CI.match(/- name: Syntax check every source\n([\s\S]*?)(?=\n {6}- name:)/) || [])[1] || '';
+const legCallsCheck = /\brun:\s*(?:\|\s*\n)?\s*npm run check\b/.test(syntaxStep);
+const legRoots = (((PKG.scripts.check || '').match(/find\s+(.+?)\s+-type f/) || [])[1] || '').trim().split(/\s+/).filter(Boolean);
+const srcFiles = [];
+(function walk(dir, rel) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name === '.git' || e.name === '_scratch') continue;
+    const p = rel ? `${rel}/${e.name}` : e.name;
+    if (e.isDirectory()) walk(join(dir, e.name), p);
+    else if (/\.(js|mjs|cjs)$/.test(e.name)) srcFiles.push(p);
+  }
+})(ROOT, '');
+const outside = srcFiles.filter((f) => !legRoots.some((r) => f === r || f.startsWith(`${r}/`)));
+ok(legCallsCheck && legRoots.length >= 4 && outside.length === 0,
+  'D6d CI 的 `Syntax check every source` 那一步直接调 `npm run check`，而那条 leg 自己的 find 根盖住树上每个源码文件（手抄一份 loop 就是第二份真相：leg 改了抄本不红，抄本漏一个根＝那个文件从此没人 `node --check`）',
+  `CI 那一步实到 ${JSON.stringify((syntaxStep.split('\n').map((s) => s.trim()).filter((s) => s && s !== 'run: |')[0] || '解析不到'))} · leg 根 ${legRoots.join(' ') || '解析不到'} · 根外的源码文件 ${outside.length ? outside.join(' ') : '0 个'}（树上一共 ${srcFiles.length} 个）`);
 
 // D6c 钉的是"有人跑台账"这句话本身。台账是个文件，文件躺在仓里不等于 CI 会跑它——
 // 所以四处各查一遍，缺任何一处就红，而 H14 这把刀砍的正是 CI 里那一步（少了它 D6c 必须自己变红）。

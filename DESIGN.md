@@ -97,7 +97,7 @@
 
 | 承诺 | 守它的东西 |
 | --- | --- |
-| 语法能过 | `npm run check`（`package.json:11`）+ CI 逐文件 `node --check`（`.github/workflows/ci.yml:26`） |
+| 语法能过 | `npm run check`（`package.json:11`），CI 的那一步就是调它（`.github/workflows/ci.yml:26`）。`D6d` 两头都钉：这一步不许换回手抄 loop，leg 的 find 根不许漏掉树上任何 `.js/.mjs/.cjs`（根目录的 `sw.js` 就是这么漏掉过） |
 | 唯一解 / 零猜测 / 同 seed 可复现 | `npm test` 127 条（`tools/engine-test.mjs:105` 唯一性证完、`tools/engine-test.mjs:121` seed 确定性） |
 | 阶梯与耗时预算 | `npm run balance` B1–B6（`ci.yml` 的 `Difficulty ladder is still measured` 一步设 `SAMPLES: "20"`，`balance.mjs` 末尾 `process.exit(red ? 1 : 0)`） |
 | 状态读数、留空、黑格不可改、胜利三条件 | 浏览器 `play/hint/win` 腿（`tools/scenarios.js:200`、`tools/scenarios.js:312`） |

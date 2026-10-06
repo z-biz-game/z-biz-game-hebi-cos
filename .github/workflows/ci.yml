@@ -23,9 +23,10 @@ jobs:
       # bundler into CI to prove nothing is how a repo starts failing on a network flake.
       - name: Syntax check every source
         run: |
-          for f in $(git ls-files 'js/*.js' 'js/*/*.js'); do node --check "$f" || exit 1; done
-          node --check server.cjs
-          for f in $(git ls-files 'tools/*.mjs' tools/scenarios.js tools/playtest.cjs); do node --check "$f" || exit 1; done
+          npm run check   # 这一步原先手抄了三份 for-loop，正本在 package.json:11
+          # 手抄的坏处不是啰嗦，是"两份真相"：leg 改了抄本不会跟着红，抄本漏了某个目录
+          # 也没人查（漏一个 js/*/*/*.js 就是那个目录从此没人检语法）。
+          # leg 自己用 find 覆盖 js/ tools/ server.cjs 下的 .js/.mjs/.cjs，比那三份的并集宽。
 
       # The real promise: every generated board has one solution and is reachable by the named
       # pencil rules. Plain Node, so it guards merges without a browser.
