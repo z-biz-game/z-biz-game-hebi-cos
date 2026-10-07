@@ -34,7 +34,7 @@ rm -rf "$TMPD"; mkdir -p "$TMPD"
 # 整道闸照样 exit 0。这两颗钉由 tools/doctest.mjs 的 D11b/D11c 反向核对（它读的就是下面这一行），
 # 改一处不改另一处就是红。
 FAILED=0
-LOGIC_EXPECTS="doctest:47 sabotage:19"
+LOGIC_EXPECTS="doctest:52 sabotage:20"
 pin_of() { printf '%s\n' "$LOGIC_EXPECTS" | tr ' ' '\n' | grep "^$1:" | cut -d: -f2; }
 LLOG="$TMPD/logic.log"
 

@@ -74,9 +74,10 @@ KNIVES = [
      '        run: echo "ledger not wired"', ['doctest'], 'D6c'),
     # D11 那一组钉的是"门也在家门口"。这两把刀分别回答：钉漂了会不会红、调用被摘掉会不会红。
     # 这把刀的 needle 里带着那两个数，是故意的：加/删一条断言的人若忘了同时改 verify.sh 的钉，
-    # 这一枪不会静默跳过，而是以 `needle 出现 0 次` 的 ERROR 点名他——本轮 46→47、17→19 就是这么被抓出来的。
-    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:47 sabotage:19"',
-     'LOGIC_EXPECTS="doctest:46 sabotage:19"', ['doctest'], 'D11b'),
+    # 这一枪不会静默跳过，而是以 `needle 出现 0 次` 的 ERROR 点名他——补 D11 那一轮的 46→47、
+    # 17→19 与后面补 D12 那两处的 47→52、19→20 都是这么被迫两边一起走的。
+    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:52 sabotage:20"',
+     'LOGIC_EXPECTS="doctest:51 sabotage:20"', ['doctest'], 'D11b'),
     ('H16', 'tools/verify.sh', 'node "$HERE/tools/doctest.mjs" >"$LLOG" 2>&1\n',
      '', ['doctest'], 'D11d'),
     # D6d 的两半各一把刀：一把砍"CI 只许调 leg"，一把砍"leg 的根要盖住树"。都是同行内联替换，
@@ -86,6 +87,11 @@ KNIVES = [
      ['doctest'], 'D6d'),
     ('H18', 'package.json', 'find js tools server.cjs sw.js -type f',
      'find tools server.cjs sw.js -type f', ['doctest'], 'D6d'),
+    # D12 钉的是"同一件事被抄了四处"。这一把只改门禁清单那一条抄本，其余三处不动：
+    # 现推的两个数没变，所以只有把四处对齐到同一个尺子的闸才认得出这一刀。
+    # 同行内替换，只动那一个数：插一行就会挪动这份文档里别的东西的位置。
+    ('H19', 'README.md', '28 份报告 / 604 条断言 / 0 失败', '28 份报告 / 605 条断言 / 0 失败',
+     ['doctest'], 'D12b'),
     ('N1', 'README.md', '一条规则要能被点名，才谈得上「推不出来时该怪谁」。',
      '一条规则要能被点名，才谈得上「推不出来时该怪谁」。这一句是台账的对照组：它不承载任何数，改它不该让闸红。',
      ['doctest'], ''),

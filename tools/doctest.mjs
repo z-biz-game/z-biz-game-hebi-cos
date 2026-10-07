@@ -21,8 +21,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const fail = [];
 let rows = 0;
+// D12e 数的是"这一次真的跑过哪些组"，所以组号在 ok() 里顺手记下来：标签是唯一的真相来源，
+// 整段删掉一组，那一格就从这里消失。
+const emitted = new Set();
 const ok = (cond, label, detail) => {
   rows++;
+  const g = /(?:^|[^A-Za-z0-9_])D(\d+)/.exec(label);
+  if (g) emitted.add(+g[1]);
   if (!cond) fail.push(label);
   console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${label} · ${detail}`);
 };
@@ -243,6 +248,38 @@ ok(missing.length === 0, 'D10 文档点名的每条红线在 balance.mjs 里都�
 ok(undocumented.length === 0, 'D10b balance.mjs 里每条红线都被文档点名（新增红线不能没人写）',
   undocumented.length ? `没写进文档：${undocumented.join(' ')}` : '一一对上');
 
+// ---- D12 同一件事的三份抄本：报告数与断言数在文档里被写了三次，这里让它们对同一个现推值 ----
+// D3 管「闸的形状」那一句、D8 管「逐报告条数」那一段，可 README 另有两处各自写着份数与条数
+// （门禁清单的 verify 那一行、承诺表的形态那一行）。它们与上面两处是**同一个事实的第四次抄写**：
+// 加一份报告、或给某条腿多一条断言时，改了 A 处忘了 B 处，文档就同时印着两个数，而两处都绿。
+const shapeTotal = reportsPerShape * shapes;   // 现推：一次跑多少份报告
+const assertTotal = perShape * shapes;         // 现推：一次跑多少条断言
+const PAIR_RE = /(\d+) 份报告 \/ (\d+) 条断言 \/ 0 失败/g;
+const SHAPE_RE = /(\d+) 个形态 · (\d+) 份报告/g;
+const pairClaims = [...README.matchAll(PAIR_RE)];
+const shapeClaims = [...README.matchAll(SHAPE_RE)];
+const pairMiss = pairClaims.filter((m) => +m[1] !== shapeTotal || +m[2] !== assertTotal);
+const shapeMiss = shapeClaims.filter((m) => +m[1] !== shapes || +m[2] !== shapeTotal);
+ok(pairClaims.length >= 1 && shapeClaims.length >= 1,
+  'D12a README 里"份数 + 条数"那两形各解析到了至少一处（抄本被删光时这里红，不是那两格变空转绿）',
+  `「N 份报告 / M 条断言 / 0 失败」${pairClaims.length} 处 · 「K 个形态 · N 份报告」${shapeClaims.length} 处`);
+ok(pairMiss.length === 0, `D12b 每一处「N 份报告 / M 条断言」都等于脚本现推的（${shapeTotal} 份 / ${assertTotal} 条）`,
+  pairMiss.length ? `漂：${pairMiss.map((m) => `${m[1]} 份/${m[2]} 条`).join('，')}`
+                  : `${pairClaims.length} 处全部等于 ${shapeTotal}/${assertTotal}`);
+ok(shapeMiss.length === 0, `D12c 「K 个形态 · N 份报告」等于现推的（${shapes} 形态 · ${shapeTotal} 份）`,
+  shapeMiss.length ? `漂：${shapeMiss.map((m) => `${m[1]} 形态/${m[2]} 份`).join('，')}`
+                   : `${shapeClaims.length} 处全部等于 ${shapes}/${shapeTotal}`);
+// 阳性对照下在内存里：把其中一处抄本改坏一个数，同一套比较必须认它漂。
+// 没有这一格，D12b/D12c 与"正则最近没匹配上任何东西"这件事就没有区别——都绿得没有证人。
+const bite = (text) => [...text.matchAll(PAIR_RE)].some((m) => +m[1] !== shapeTotal || +m[2] !== assertTotal)
+  || [...text.matchAll(SHAPE_RE)].some((m) => +m[1] !== shapes || +m[2] !== shapeTotal);
+const fakePair = README.replace('28 份报告 / 604 条断言', '28 份报告 / 605 条断言');
+const fakeShape = README.replace('2 个形态 · 28 份报告', '2 个形态 · 29 份报告');
+ok(fakePair !== README && fakeShape !== README && pairClaims.length === 1 && shapeClaims.length === 1
+   && bite(fakePair) && bite(fakeShape) && !bite(README),
+  'D12d 内存阳性对照：两处抄本各改一个数，这套比较都必须认它漂（改回真的就等于没测）',
+  `604→605 ${bite(fakePair) ? '认漂' : '没认'} · 28→29 ${bite(fakeShape) ? '认漂' : '没认'} · 原文 ${bite(README) ? '被误判漂' : '判为等'}`);
+
 // ---- D11 家门口的门：verify.sh 必须跑这三道逻辑闸，而且钉的条数与实跑一致 ----
 // 补的是「门只在 CI 里跑」这个缺陷：CI 的 check job 有 engine-test 与 doctest 两步、browser job
 // 有台账一步，而本地那道 one-shot 以前一步都不跑——改闸的人在自己机器上看见的绿，是另一套。
@@ -265,7 +302,7 @@ const called = ['tools/engine-test.mjs', 'tools/doctest.mjs', 'tools/sabotage.py
   .filter((c) => callLines.some((l) => l.includes(c)));
 ok(called.length === 3, 'D11d verify.sh 里三道逻辑闸各有一条真调用（注释里提到不算调用）',
   called.join(' · ') || '一条都没有');
-const finalRows = rows + 3; // D11b、D11e、D11f 各是本闸的一项，它们排在最后
+const finalRows = rows + 4; // D11b、D11e、D11f、D12e 各是本闸的一项，它们排在最后
 ok(!!pins.doctest && +pins.doctest === finalRows,
   `D11b verify.sh 钉的 doctest 项数 == 本闸实跑项数（${finalRows}，含 D11 这六条）`,
   `钉 ${pins.doctest || '无'} · 实跑 ${finalRows}`);
@@ -280,6 +317,18 @@ const docRows = [...new Set([...README.matchAll(/rows: (\d+) fail: 0/g)].map((m)
 ok(docRows.length === 1 && docRows[0] === String(finalRows),
   `D11f README 里 \`rows: N fail: 0\` 只出现一个 N，而且等于本闸实跑项数（${finalRows}）`,
   docRows.length ? `文档 ${docRows.join('/')}` : '文档里一处 rows: 都没解析到（那就是把这几处删了）');
+
+// 这一格排在最后是有原因的：它要数的是"这一次跑过的组"，而 D11 自己那几项也得先进 emitted。
+// 文档点名的 D 编号是玩家/改闸的人按图索骥的入口——入口指到一洞不存在、或指到一个这一遍
+// 没跑的组，都比"少一条断言"更坏，因为它是绿的假话。
+const GROUPS_TOTAL = 12;
+const dMentions = [...new Set((DOCS.match(/(?<![A-Za-z0-9_])D\d+/g) || []))].map((x) => +x.slice(1)).sort((a, b) => a - b);
+const unknownD = dMentions.filter((v) => !emitted.has(v));
+ok(dMentions.length >= 10 && dMentions.length <= GROUPS_TOTAL && unknownD.length === 0
+   && emitted.size === GROUPS_TOTAL,
+  `D12e 文档点名的每个 D 编号都在这一次实跑的 ${GROUPS_TOTAL} 个组里（编号写到不存在的那一组就红）`,
+  unknownD.length ? `没有对应检查：${unknownD.map((v) => 'D' + v).join(' ')}`
+                  : `文档点名 ${dMentions.join('/')} · 本次实跑 ${emitted.size} 组`);
 
 console.log(`\n合计 ${rows} 项，${fail.length} 项失败`);
 console.log(`rows: ${rows} fail: ${fail.length}`);
