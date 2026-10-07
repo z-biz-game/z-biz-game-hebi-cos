@@ -109,7 +109,7 @@
 | 片段导航不算重载 | `tools/verify.sh:202`，本轮 4 条断言：`timeOrigin` 与文档身份都不许变 |
 | 坏档 = 没有存档，不是白屏 | `tools/scenarios.js:447`–`tools/scenarios.js:453`（本轮 corrupt 腿 9 条） |
 | 两种 URL 形态都算数 | `tools/verify.sh:47`（前缀形态由 `server.cjs:12` 实现，不是为测试另写一个服务）；preflight 先证明端口上的字节是本仓的（`tools/verify.sh:53`–`tools/verify.sh:60`） |
-| 闸自己会红——而且是**每一份报告**都会红 | 场景腿由 `tools/scenarios.js:29` 种一条 1==2，node 侧的真事件腿与 nav/reload 由 `tools/playtest.cjs:38` 的 `result()` 种同一条；分母从 `LEGS` 现算（`tools/verify.sh:236-245`），哪一份没种上就点名哪一份（`tools/verify.sh:128`）。CI 要求 `rc≠0` **且**日志点名 `FAIL`（`.github/workflows/ci.yml:81`、`.github/workflows/ci.yml:82`） |
+| 闸自己会红——而且是**每一份报告**都会红 | 场景腿由 `tools/scenarios.js:29` 的 `rows.push` 种一条 1==2，node 侧的真事件腿与 nav/reload 由 `tools/playtest.cjs:35` 的 `result()`（种下那条红的正是 `:38`），分母从 `LEGS` 现算（`tools/verify.sh:135` 声明、`:217` 与 `:296` 逐腿展开），哪一份没种上就点名哪一份（`tools/verify.sh:316` 的 `RED`）。CI 那一步先要求 rc 非 0（`.github/workflows/ci.yml:91`），再要求日志里点得到 `FAIL`（`.github/workflows/ci.yml:92`） |
 | 什么都没断言的腿不算绿 | `tools/verify.sh:113`（没有 RESULT 行）、`tools/verify.sh:121`（NO CHECKS RUN） |
 | 写错的腿名不能变成空跑 | `tools/verify.sh:218`–`tools/verify.sh:224`：`LEGS` 只认七个腿名，认不出的直接 `RED` + `FAILED=1`。这一格是本轮补的——`LEGS=hint`（`hint` 是 play 腿里的一条 scenario，不是腿名）曾经一声不响地跑出 `=== ALL GREEN ===` 而一份报告都没有；对数表那一侧同样有 `tools/verify.sh:242` 兜着。补闸台架的 H13 在这一格里咬出了第二个 bug：没有 `LANG` 的环境里 `$leg（` 会把全角括号的首字节算进变量名，红是红了却不点名腿名，所以现在写 `${leg}（` |
 | **文档印的数就是代码/脚本里的现值** | `node tools/doctest.mjs`（本轮新建）：`D1` 三档表对 `TIERS`、`D2` 十条规则名对 `pencil.js` 且每条在非注释行里出现（`D2b` 数的是剥掉注释行之后的正文——整份文件一起数会被注释凑够次数）、`D3` 腿/形态/报告数对 `verify.sh` 的现值、`D4` 端口对四处定义、`D5` 节点预算对 `opts.cap` 且读数真的小于它、`D6` CI 覆盖表与 `ci.yml` 的 job 双向核对、`D7` `SAMPLES` 用子进程探针、`D8` 逐报告条数与两个总数自洽、`D9` 每条 `path:NN` 引用都在真实行数内、`D10` 红线标签双向 |
