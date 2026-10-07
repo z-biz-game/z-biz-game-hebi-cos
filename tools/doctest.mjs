@@ -219,22 +219,41 @@ ok(!!totals && perShape * shapes === +totals[2], 'D8b 每形态条数 × 形态�
 
 // ---- D9 引用不漂：文档里每一个 path:NN 都指向真实文件里真实存在的那一行 ----
 const cites = [...DOCS.matchAll(/((?:\.github\/workflows\/)?[\w./-]+\.(?:js|mjs|cjs|sh|json|html|yml)):(\d+)(?:-(\d+))?/g)];
-const bad = [];
-for (const c of cites) {
+// 一条引用的两道查抽成一个函数，是因为下面那把空行刀要走**同一条代码路径**：把空行那一道删掉，范围检查
+// 照样全绿，只有这一把会立刻红——否则新加的那道查就是一张没有对照的等式。
+const citeMiss = (file, fromRaw, toRaw) => {
+  const label = `${file}:${fromRaw}${toRaw ? '-' + toRaw : ''}`;
   let src;
   try {
-    src = read(c[1]);
+    src = read(file).split('\n');
   } catch {
-    bad.push(`${c[1]}:${c[2]}（文件不存在）`);
-    continue;
+    return `${label}（文件不存在）`;
   }
-  const n = src.split('\n').length;
-  if (+c[2] > n || (+c[3] && +c[3] > n)) bad.push(`${c[1]}:${c[2]}${c[3] ? '-' + c[3] : ''}（该文件只有 ${n} 行）`);
+  const from = +fromRaw;
+  const to = +(toRaw || fromRaw);
+  if (from > src.length || to > src.length) return `${label}（该文件只有 ${src.length} 行）`;
+  // 「在界内」不等于「指到了代码」：D9 只问行号存在吗，句子里没贴名字的裸引用它一条锚点都拿不到，
+  // 所以整段空白必须在这里红——否则它指着的只是一片行距。
+  if (src.slice(from - 1, to).join('').trim() === '') return `${label} 那几行整段是空行`;
+  return '';
+};
+const bad = [];
+for (const c of cites) {
+  const miss = citeMiss(c[1], c[2], c[3]);
+  if (miss) bad.push(miss);
 }
+// 反空转的刀：空行靶子现量（本闸自己这份文件的第一处空行），不写死——写死的那个数会在有人填了那一行之后
+// 悄悄地不再测任何东西，`blankAt > 0` 把那一天变成红。
+const probeBlank = read('tools/doctest.mjs').split('\n');
+let blankAt = 0;
+for (let i = 1; i < probeBlank.length; i++) if (String(probeBlank[i]).trim() === '') { blankAt = i + 1; break; }
+const blankKnife = blankAt ? citeMiss('tools/doctest.mjs', blankAt, null) : '';
 ok(cites.length >= 20, 'D9a 文档里的行号引用解析到了一大堆（少于 20 条说明引用格式改了）',
   `${cites.length} 条引用`);
-ok(bad.length === 0, 'D9 每一条 path:NN 引用都落在真实文件的行数内',
-  bad.length ? `越界：${bad.join('，')}` : `${cites.length} 条全部在范围内`);
+ok(bad.length === 0 && !!blankKnife, 'D9 每一条 path:NN 引用都落在真实文件的行数内、且被指的那几行整段不许是空行（这一格自己带一把指向空行的刀）',
+  bad.length ? `越界/不存在/空行：${bad.join('，')}`
+    : blankKnife ? `${cites.length} 条全部在范围内 · 刀：第 ${blankAt} 行是空行，指过去判红`
+      : '本闸自己的文件里找不出空行靶子 —— 空行那一道没被证明过');
 
 // ---- D10 红线标签双向：文档点名的每条红线都得存在，存在的每条红线都得有人写 ----
 const realLabels = [...new Set([...BAL.matchAll(/\b(B\d(?:b)?)(?=[ 　])/g)].map((m) => m[1]))];
