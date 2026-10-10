@@ -83,7 +83,6 @@ const keys = { seen: 0, handled: 0, repeated: 0, last: '', by: {} };
 // clockMs 由积分器按帧 dt 累加；runClock 是"这一局该不该走表"，paused 是"玩家按了暂停"。
 let clockMs = 0;
 let runClock = false;
-let paused = false;
 let rafId = 0;
 let boardDirty = true;
 
@@ -171,36 +170,10 @@ function startLoop() {
   schedule();
 }
 
-function startClock() {
-  runClock = true;
-  startLoop();
-}
 
-function stopClock() {
-  runClock = false;
-  schedule();
-}
 
 // 暂停：不推进仿真（时钟冻住、粒子冻住），并且吃掉所有落子入口。
 // 恢复后不丢状态——盘、光标、提示计数都没被碰过，唯一的动作是把循环再点起来。
-function togglePause(force) {
-  if (!game || game.status === 'won') return paused;
-  paused = typeof force === 'boolean' ? force : !paused;
-  el.pauseVeil.hidden = !paused;
-  el.pauseBtn.setAttribute('aria-pressed', String(paused));
-  el.pauseBtn.textContent = paused ? '继续' : '暂停';
-  if (paused) {
-    say('已暂停：时钟与动效停住，写格与提示都不生效。');
-  } else {
-    say('');
-    // 暂停期间的墙钟缺口不算进这一局：积分器复位 ⇒ 恢复后的第一帧 dt=0，
-    // 不会把"去倒了杯咖啡"补成 250ms 的仿真快进（那笔账本来就被 MAX_FRAME_DT 钳住）。
-    time.reset();
-    startLoop();
-  }
-  syncStats();
-  return paused;
-}
 
 function showHelp(open) {
   const next = typeof open === 'boolean' ? open : el.help.hidden;
@@ -210,29 +183,6 @@ function showHelp(open) {
   return next;
 }
 
-function toggleFullscreen() {
-  const node = document.documentElement;
-  const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  let p = null;
-  if (!isFull) {
-    p = node.requestFullscreen
-      ? node.requestFullscreen({ navigationUI: 'hide' })
-      : node.webkitRequestFullscreen
-        ? node.webkitRequestFullscreen()
-        : null;
-  } else {
-    p = document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen?.();
-  }
-  // 拒绝全屏是浏览器的权利（iframe 里、iOS Safari 根本没有这个 API）。
-  // 那不是玩家的错，红字留给状态行，别让 promise 炸在控制台。
-  if (p && typeof p.catch === 'function') {
-    p.catch(() => {
-      say('这个浏览器不让全屏。转成横屏、或用系统的全屏，效果一样。');
-      syncStats();
-    });
-  }
-  return !isFull;
-}
 
 function syncFullscreenLabel() {
   const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
@@ -248,28 +198,6 @@ function toggleMute() {
   return Store.setting('sound');
 }
 
-function showHint(info) {
-  if (!info) return;
-  if (info.stalled) {
-    el.hintRule.textContent = '推不动了';
-    el.hintLine.textContent = info.text;
-    return;
-  }
-  if (info.conflict) {
-    el.hintRule.textContent = '这里和题面矛盾';
-    el.hintLine.textContent = info.conflict;
-    Sound.conflict();
-    return;
-  }
-  el.hintRule.textContent = `规则：${info.rule}`;
-  el.hintLine.textContent = info.text;
-  pulse = { cell: info.cell, left: 1.6 };
-  // 省动效下不起光环：静态描边（board.js 画的 pulse 那圈）已经把"是哪一格"说完了，
-  // 再叠一层收缩动画就是拿无障碍换好看。寿命照样由定步长走，所以两条路都不看帧率。
-  if (!prefersReducedMotion()) fx.hint(info.cell);
-  startLoop();
-  Sound.hint();
-}
 
 // 重开/换局/回菜单走的都是这一条：把所有一次性状态清干净。
 // 只调 init() 而漏掉缓存，是"新一局带着上一局的粒子开场"那种鬼状态的成因。
@@ -284,29 +212,6 @@ function resetTransient() {
   notice = '';
 }
 
-function onWin() {
-  stopClock();
-  const ms = clock();
-  const better = Store.recordBest(game.puzzle.tier, {
-    ms,
-    hints: game.hints,
-    moves: game.moves,
-    size: `${game.R}×${game.C}`,
-  });
-  Store.recordSolve(ms, game.hints);
-  Store.clearResume();
-  const f = game.winFacts();
-  el.winMeta.textContent = `${tierFor(game.puzzle.tier).name} · ${game.R}×${game.C} · seed ${game.puzzle.seed} · ${fmtMs(ms)} · ${game.moves} 步 · 提示 ${game.hints} 次`;
-  el.winRecord.textContent =
-    `判据 ${f.errs} 条违反 · 白格全定 ${f.decided}/${f.white} · 与唯一解逐格相同（${f.mismatch} 处不同） · ` +
-    (better ? '新纪录：这一局比存档里的更不求人。' : '未破纪录：同档先比提示次数。');
-  el.winVeil.hidden = false;
-  el.stateLine.textContent = '';
-  if (!prefersReducedMotion()) fx.win(game);
-  startLoop();
-  Sound.win();
-  renderRecords();
-}
 
 // One place writes the readouts, so a stat can never be updated by half the file.
 function syncStats() {
