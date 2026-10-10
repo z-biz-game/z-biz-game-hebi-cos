@@ -1,42 +1,56 @@
 'use strict';
-// network-first 的离线壳：能联网就取网络、顺手回填缓存；断网时回落到上次成功抓取的资源。
-// 刻意不做 cache-first——被旧缓存钉住的那次线上事故，比没有离线能力更糟。
+// 离线可用 + 永不被旧缓存钉住。
 //
-// CACHE 带版本号，activate 时清掉所有别的版本：改了代码不需要玩家"清缓存"。
-var VERSION = 'v1';
-var CACHE = 'hebi-ichigo-' + VERSION;
-var SHELL = 'index.html';
+// 两条实测换来的口径：
+//   1) 一律 **网络优先**，命中网络才回填缓存。手工 VERSION + cache-first 的组合，
+//      发出去的 HTML 会配上上一版的 js/css，出一个"新界面配旧逻辑"的鬼状态，
+//      而且玩家自己无法恢复（只能等缓存过期）。
+//   2) 缓存名带版本号（activate 时清掉非本版的名字）。改版**不需要**同步 bump：
+//      同名文件重绘之后，网络优先这一条保证客户端下一次联网就拿到新字节。
+const VERSION = 'hebi-cos-v1';
+const CACHE = `${VERSION}-shell`;
+const PRECACHE = ['index.html', 'manifest.webmanifest'];
 
-self.addEventListener('install', function () { self.skipWaiting(); });
-
-self.addEventListener('activate', function (e) {
-  e.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.filter(function (k) { return k !== CACHE; })
-      .map(function (k) { return caches.delete(k); }));
-  }).then(function () { return self.clients.claim(); }));
+self.addEventListener('install', (ev) => {
+  // 首屏两件套先抓下来：断网时至少能打开界面，而不是浏览器的错误页。
+  ev.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(PRECACHE).catch(() => {})).then(() => self.skipWaiting())
+  );
 });
 
-self.addEventListener('fetch', function (e) {
-  var req = e.request;
+self.addEventListener('activate', (ev) => {
+  ev.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (ev) => {
+  const req = ev.request;
   if (req.method !== 'GET') return;
-  var url = new URL(req.url);
-  // 只碰同源：图标若被 CDN 改写、或页面嵌了第三方资源，一概不动。
+  const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  e.respondWith(
-    fetch(req).then(function (res) {
-      if (res && res.ok) {
-        caches.open(CACHE).then(function (c) {
-          c.put(req, res.clone()).catch(function () {});
-          // 导航响应再按 SHELL 这个固定键存一份：断网时地址栏可能带着上一轮的查询串，
-          // 只按原请求 URL 存的那一份就永远命中不了，离线打开依旧白屏。
-          if (req.mode === 'navigate') c.put(SHELL, res.clone()).catch(function () {});
-        });
-      }
-      return res;
-    }).catch(function () {
-      return caches.match(req).then(function (hit) {
-        return hit || (req.mode === 'navigate' ? caches.match(SHELL) : Response.error());
-      });
-    })
+
+  ev.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(async () => {
+        const hit = await caches.match(req);
+        if (hit) return hit;
+        // 导航请求（地址栏/刷新/桌面图标）离线时回落到缓存的那份壳，不白屏。
+        if (req.mode === 'navigate') {
+          const shell = await caches.match('index.html');
+          if (shell) return shell;
+        }
+        return Response.error();
+      })
   );
 });

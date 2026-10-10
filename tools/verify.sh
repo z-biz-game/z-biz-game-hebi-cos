@@ -18,13 +18,71 @@
 #  * macOS 没有 timeout：看门狗用后台子 shell + trap（下面的 WD）。
 set -u
 HERE=$(cd "$(dirname "$0")/.." && pwd)
-PORT=${CDP_PORT:-9362}
+PORT=${CDP_PORT:-9362}; if command -v lsof >/dev/null 2>&1 && lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then echo ":$PORT is already LISTENING — a sibling gate or an orphan Chrome holds it; attaching there reads someone else's browser. Wait for it to finish, or rerun with CDP_PORT=<a free port>." >&2; lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >&2 || true; exit 6; fi  # 一机一台：撞在同一个默认口上时不报错的是 Chrome，报错的是绿——先让路再开闸
 # 5262 是本仓自己的端口；别的 agent 同时在跑各自仓的 verify.sh，端口撞了就会拿到"另一个仓"的
 # index.html，那种绿比红更糟。
 HTTP=${HTTP_PORT:-5262}
 SELF=${GATE_SELFTEST:-0}
 TMPD="$HERE/_tmp-verify"
 rm -rf "$TMPD"; mkdir -p "$TMPD"
+
+# ---- 逻辑闸（纯 node/python，不开浏览器）：排在找 Chrome、起服务之前 ----
+# CI 把这三道各跑一步（check job 的 engine-test 与 doctest，browser job 的台账），而这一道本地
+# one-shot 以前一步都不跑：于是「bash tools/verify.sh 全绿」并不等于 CI 会绿——改闸的人在家里
+# 看不见它在 CI 里红的那一条。门要两边同一把。
+# 钉的是每道闸自己的条数：rc=0 看不出闸变窄——明天有人删掉 20 条断言，只要剩下的还是绿的，
+# 整道闸照样 exit 0。这两颗钉由 tools/doctest.mjs 的 D11b/D11c 反向核对（它读的就是下面这一行），
+# 改一处不改另一处就是红。
+FAILED=0
+LOGIC_EXPECTS="doctest:52 sabotage:20"
+pin_of() { printf '%s\n' "$LOGIC_EXPECTS" | tr ' ' '\n' | grep "^$1:" | cut -d: -f2; }
+LLOG="$TMPD/logic.log"
+
+node "$HERE/tools/engine-test.mjs" >"$LLOG" 2>&1
+ET_RC=$?
+ET_LINE=$(sed -n 's/^合计 \([0-9]*\) 项通过，\([0-9]*\) 项失败$/\1 \2/p' "$LLOG" | tail -1)
+if [ -z "$ET_LINE" ]; then
+  echo "逻辑闸 engine-test：没打印「合计 N 项通过」这一行（rc=${ET_RC}），分不清跑完了还是没有" >&2
+  tail -20 "$LLOG" >&2; FAILED=1
+elif [ "$ET_RC" != 0 ] || [ "${ET_LINE##* }" != 0 ]; then
+  echo "逻辑闸 engine-test 红：${ET_LINE}（rc=${ET_RC}）" >&2; FAILED=1
+else
+  echo "逻辑闸 engine-test：${ET_LINE% *} 项通过、0 项失败 ✓"
+fi
+
+node "$HERE/tools/doctest.mjs" >"$LLOG" 2>&1
+DS_RC=$?
+DS=$(sed -n 's/^rows: \([0-9]*\) fail: \([0-9]*\)$/\1\/\2/p' "$LLOG" | tail -1)
+grep -E '^  未过：' "$LLOG" | head -25
+if [ "$DS" != "$(pin_of doctest)/0" ]; then
+  echo "逻辑闸 doctest 体量 ${DS:-未打印 rows:} != 钉的 $(pin_of doctest)/0（rc=${DS_RC}）—— 增删一条断言要同时改 LOGIC_EXPECTS 与 D11b" >&2
+  FAILED=1
+else
+  echo "逻辑闸 doctest：$(pin_of doctest) 项、0 项失败 ✓"
+fi
+
+# 台账会真跑 verify.sh（命令刀 H13 打的是 LEGS=hint），所以嵌套那一层必须由哨兵跳过自己：
+# 闸叫台账、台账叫闸，谁都不肯先收口就没有底。env 由 sabotage.py 派 subprocess 时设上。
+# 阴性自证那一跑也跳过：SELF=1 给浏览器腿种的是注定错的期望，每一把刀的 rc 都会因此非 0，
+# 于是"红"不再归因于刀——台账要在干净的树上量，这才是它自己那句承诺。
+if [ -n "${HEBI_VERIFY_INSIDE_LEDGER:-}" ]; then
+  echo "台账：跳过（这一层是台账自己叫起的 verify.sh）"
+elif [ "${SELF}" = "1" ]; then
+  echo "台账：跳过（GATE_SELFTEST 这一跑的浏览器腿本来就红，刀的红没有归因）"
+else
+  HEBI_VERIFY_INSIDE_LEDGER=1 python3 "$HERE/tools/sabotage.py" >"$LLOG" 2>&1
+  SB_RC=$?
+  SB=$(sed -n 's/^rows: \([0-9]*\) fail: \([0-9]*\)$/\1\/\2/p' "$LLOG" | tail -1)
+  cat "$LLOG"   # 逐把读数打进整闸日志：$LLOG 末尾会被 rm -f，不留下来就只有几行尾巴当证人
+  if [ "$SB" != "$(pin_of sabotage)/0" ]; then
+    echo "台账体量 ${SB:-未打印 rows:} != 钉的 $(pin_of sabotage)/0（rc=${SB_RC}）—— 刀少了或某一刀没能把点名的断言逼红" >&2
+    FAILED=1
+  else
+    echo "台账：$(pin_of sabotage) 把刀各自逼红了点名的断言 ✓"
+  fi
+fi
+rm -f "$LLOG"
+
 CHROME=${CHROME_BIN:-}
 if [ -z "$CHROME" ]; then
   for c in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
@@ -71,7 +129,8 @@ cleanup() {
 trap cleanup EXIT
 ( sleep ${WD_TIMEOUT:-900}; cleanup ) </dev/null >/dev/null 2>&1 & WD=$!
 
-FAILED=0
+# FAILED 在上面逻辑闸那一节就置过 0，这里不再重置：把逻辑闸的红冲掉再开始浏览器段，
+# 等于「本地全绿」重新变成一句假话。
 REPORTS="$TMPD/reports.txt"; : >"$REPORTS"; export REPORTS
 LEGS=${LEGS:-core play win mouse touch keys save}
 
@@ -247,7 +306,7 @@ if [ "$SELF" = 1 ]; then
   HIT=$(awk '$2 > 0' "$REPORTS" | wc -l | tr -d ' ')
   echo "  应有 $EXPECTED 份报告，实到 $GOT 份，其中 $HIT 份点名吃下了种下的错"
   if [ "$GOT" != "$EXPECTED" ]; then
-    echo "  RED 阴性自证的报告数对不上：$GOT ≠ $EXPECTED（有腿没跑，或对数表漂了）" >&2
+    echo "  RED 阴性自证的报告数对不上：$GOT ≠ ${EXPECTED}（有腿没跑，或对数表漂了）" >&2
     FAILED=1
   fi
   if [ "$FAILED" = 0 ]; then
@@ -262,5 +321,10 @@ if [ "$SELF" = 1 ]; then
 fi
 
 kill $WD 2>/dev/null
+# 部署集闸：ci.yml 跑这两步、本地整闸以前一次都不跑。缺这一步就是「本地全绿、线上 404 自己的
+# manifest / sw.js / 图标」这一整类坏法。它不碰 Chrome，也不读页面，纯查产物。
+echo "=== deploy-set ==="
+node tools/deploy-set.mjs || FAILED=1
+node tools/deploy-set-selftest.mjs || FAILED=1
 [ $FAILED -eq 0 ] && echo "=== ALL GREEN ===" || echo "=== FAILURES ABOVE (rc=$FAILED) ==="
 exit $FAILED

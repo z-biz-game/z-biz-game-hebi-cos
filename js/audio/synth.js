@@ -5,13 +5,17 @@
 let ctx = null;
 let master = null;
 let enabled = true;
-// 观察量：门禁要能自己判定"静音是真的安静了"，而不是读我随手设的一个布尔。
-// voices = 真的建出来的 oscillator 只数；suspends/resumes = 各发起过几次。
-let voices = 0;
-let suspends = 0;
-let resumes = 0;
+// 静音偏好：读回存档。放在模块顶层，这样每次 init（首屏、开局、重开）都拿到同一个答案，
+// 重开一局不会把玩家的静音选择洗掉。
+try {
+  if (localStorage.getItem('cos.mute') === '1') enabled = false;
+} catch { /* 读不到就沿用默认开声 */ }
 
-function ensure() {
+
+function audio() {
+  // 静音态第一行就返回：既不把已挂起的 ctx 拉起来，也不新建节点。
+  // 这条比 "gain 设 0" 强一档——静音时这个 AudioContext 根本没有在跑。
+  if (!enabled) return null;
   if (typeof AudioContext === 'undefined' && typeof webkitAudioContext === 'undefined') return null;
   if (!ctx) {
     const Ctor = typeof AudioContext !== 'undefined' ? AudioContext : webkitAudioContext;
@@ -64,18 +68,21 @@ export const Sound = {
   // 静音不是把音量拧到 0：那只是听不见，声音照发。这里挂起整个 AudioContext，
   // 于是既不会新建 oscillator，已排程的那几个也停在原地（ctx.state 是外部可查的证人）。
   setEnabled(v) {
-    const next = !!v;
-    if (next === enabled) return next;
-    enabled = next;
-    if (!ctx) return enabled;
-    if (!enabled) {
-      suspends++;
-      ctx.suspend().catch(() => {});
-    } else {
-      resumes++;
-      ctx.resume().catch(() => {});
+    const on = !!v;
+    if (on === enabled) return;
+    enabled = on;
+    // 真静音：停掉 AudioContext 本身（时钟停、图不跑），不是把音量拧到 0。
+    if (ctx) {
+      if (on) {
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume().catch(() => {});
+      } else if (ctx.state === 'running' && ctx.suspend) {
+        ctx.suspend().catch(() => {});
+      }
     }
-    return enabled;
+    // 偏好落盘：刷新页面后 init 要能读回静音态，不能自己弹回来。
+    try {
+      localStorage.setItem('cos.mute', on ? '1' : '0');
+    } catch { /* 隐私模式下写不进去也不该炸游戏 */ }
   },
   enabled: () => enabled,
   isMuted: () => !enabled,

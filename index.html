@@ -2,33 +2,18 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#0A0D14" />
 <title>蛇莓 · Hebi-Ichigo 蛇形推理</title>
-<meta name="description" content="Hebi-Ichigo 蛇莓：白格里写 1–5 排出蛇（1 是头、5 是尾），黑格印着箭头与数字。每一局唯一解、每一局都能用命名规则推到底，提示只说推得出的那一步。" />
-<!-- 图标是 assets/gen/gen_art.py 生成的真 PNG（母题 = 题面本身：5×5 纸格 + 翡翠蛇 + 尾上那颗
-     莓）。以前这里是内联 data: SVG，代价是"有图标"和"图标是真的"两件事被一行字符合并了。 -->
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png" />
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
-<link rel="icon" type="image/png" sizes="48x48" href="assets/icons/favicon-48.png" />
-<link rel="icon" type="image/png" sizes="96x96" href="assets/icons/favicon-96.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="蛇莓" />
-<link rel="manifest" href="manifest.webmanifest" />
-<meta property="og:type" content="website" />
-<meta property="og:title" content="蛇莓 · Hebi-Ichigo 蛇形推理" />
-<meta property="og:description" content="每一局唯一解、每一局都能用命名规则推到底。白格写 1–5 排蛇，黑格箭头读数。" />
-<meta property="og:url" content="https://z-biz-game.github.io/z-biz-game-hebi-cos/" />
-<!-- 社交卡必须是绝对 URL：相对路径写在这里，抓取方一律当作没有图，卡片静默退回纯文本。 -->
-<meta property="og:image" content="https://z-biz-game.github.io/z-biz-game-hebi-cos/assets/og/og-hebi-ichigo.png" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-<meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:image" content="https://z-biz-game.github.io/z-biz-game-hebi-cos/assets/og/og-hebi-ichigo.png" />
+<meta name="description" content="Hebi-Ichigo 蛇莓：白格里写 1–5 排出蛇（1 是头、5 是尾），黑格印着箭头与数字。每一局唯一解、每一局都能用命名规则推到底，提示只说推得出的那一步。" /><meta property="og:title" content="蛇莓 · Hebi-Ichigo 蛇形推理"><meta property="og:description" content="Hebi-Ichigo 蛇莓：白格里写 1–5 排出蛇（1 是头、5 是尾），黑格印着箭头与数字。每一局唯一解、每一局都能用命名规则推到底，提示只说推得出的那一步。"><meta property="og:image" content="https://z-biz-game.github.io/z-biz-game-hebi-cos/icons/icon-512.png"><meta name="twitter:image" content="https://z-biz-game.github.io/z-biz-game-hebi-cos/icons/icon-512.png">
+<!-- Inline icon: without it the browser probes the Pages domain root for /favicon.ico and logs a 404. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230A0D14'/%3E%3Cpath d='M6 10h6v6h6v6h6' stroke='%2359D49C' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='8' cy='24' r='3.4' fill='%23FF7043'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="css/game.css" />
+
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body data-genre="hebi">
 <div id="app">
@@ -38,10 +23,8 @@
       <p class="sub">Hebi-Ichigo ·  Nikoli slug <code>hebi</code></p>
     </div>
     <div class="top-actions">
-      <button id="btn-help" class="ghost" type="button" aria-expanded="false" aria-controls="howto">玩法</button>
-      <button id="btn-pause" class="ghost" type="button" aria-pressed="false">暂停</button>
-      <button id="btn-full" class="ghost" type="button" aria-pressed="false">全屏</button>
-      <button id="btn-sound" class="ghost" type="button" aria-pressed="false" aria-label="音效与静音开关">音效 开</button>
+      <button id="btn-sound" class="ghost" type="button" aria-pressed="true" title="静音 / 恢复音效 · M">音效 开</button>
+      <button type="button" id="btn-pause" class="ghost" aria-pressed="false" title="暂停 (P)">暂停</button><button type="button" id="btn-fullscreen" class="ghost" aria-pressed="false" title="全屏 (F)">全屏</button>
       <button id="btn-motion" class="ghost" type="button" aria-pressed="false">动效 全</button>
     </div>
   </header>
@@ -222,5 +205,6 @@
 
 <script src="js/sw-register.js"></script>
 <script type="module" src="js/main.js"></script>
+  <script src="js/sw-register.js"></script>
 </body>
 </html>

@@ -1,21 +1,12 @@
 'use strict';
-// 注册要静默失败：file:// 下、旧 Safari、无痕窗口都拿不到 serviceWorker，
-// 那不是玩家的错，不该在控制台抛红。
+// service worker 注册：只在 http/https 下做。
 //
-// 但"静默"不等于"没有读数"。`可安装` 这条判据在门禁里问的是**装上了没有**，
-// 不是"文件里有没有 register 字样"——所以把结果留在 window.pwaStatus，由 main.js
-// 挂到 window.hebi.pwa() 上给浏览器腿读。
-window.pwaStatus = { supported: 'serviceWorker' in navigator, registered: false, scope: null, error: '' };
-
-if (window.pwaStatus.supported && location.protocol.indexOf('http') === 0) {
-  window.addEventListener('load', function () {
-    // 相对路径而不是 '/sw.js'：Pages 在 /z-biz-game-hebi-cos/ 前缀下发布、本地跑在根下，
-    // 两种形态都要注册成功，作用域跟着 sw.js 所在目录走（server.cjs 两种形态都答）。
-    navigator.serviceWorker.register('sw.js').then(function (reg) {
-      window.pwaStatus.registered = true;
-      window.pwaStatus.scope = reg.scope;
-    }).catch(function (err) {
-      window.pwaStatus.error = String((err && err.message) || err);
-    });
+// file:// 直接打开（双击 index.html、或把仓库 zip 解开看）时 navigator.serviceWorker
+// 要么不存在、要么 register 必抛 SecurityError。那不是玩家的错，不该在控制台上留一条
+// 红字，更不该让后面真正该跑的 main.js 因为这条未捕获异常被中断。
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', () => {
+    // 相对 sw.js 而不是绝对 /sw.js：Pages 的项目站挂在 /<repo>/ 子路径下。
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
   });
 }

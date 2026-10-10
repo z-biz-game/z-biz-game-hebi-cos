@@ -103,19 +103,26 @@ npm start            # 零依赖静态服务 → http://127.0.0.1:5262/
 「腿」是 `tools/verify.sh` 里 `LEGS` 的默认值，「形态」是同一脚本的 `SHAPES`（根 `/` 与
 Pages 的 `/z-biz-game-hebi-cos/` 前缀），一份报告是脚本里一次 `run_scenario`/`run_cmd` 的产物
 ——9 次场景 + 5 次真事件/导航命令 = 每形态 14 份，这三个数由 `doctest.mjs` 的 `D3` 从脚本现值数出来。
+同一把尺子还钉着这份文档另外两处抄本：门禁清单里 `bash tools/verify.sh` 那一行写的份数与条数、
+承诺表里「两种 URL 形态」那一行写的形态数与份数，都由 `D12` 现推对账（`D12d` 是这两处的内存阳性对照，
+`D12e` 数的是文档点名的每个 `D` 编号这一次都真的跑了）。
 
 | 命令 | 它比的是什么 | 本轮读数（rc 写进工件，不是管道尾巴） |
 | --- | --- | --- |
-| `npm run check` | 逐文件 `node --check`，含 `server.cjs` 与 `tools/` | `OK`，`CHECK_RC=0` |
+| `npm run check` | 逐文件 `node --check`，find 根为 `js/` `tools/` `server.cjs` `sw.js`（`D6d` 钉住"树上没有落在根外的源码文件"） | `OK`，`CHECK_RC=0` |
 | `npm test` → `node tools/engine-test.mjs` | 判据 R1–R4 的反例、官方 5×5 上计数器与铅笔互相点头、三档各 12 个 seed 的出货不变量、同 seed 逐格相同 | `合计 127 项通过，0 项失败`，`ENGINE_RC=0` |
-| `node tools/doctest.mjs` | **文档本身**印出去的数与代码/脚本里的现值（三档表、10 条规则名、腿×形态、端口、计数预算、CI 覆盖表、`SAMPLES` 旋钮） | `rows: 36 fail: 0`，`DOCTEST_RC=0` |
+| `node tools/doctest.mjs` | **文档本身**印出去的数与代码/脚本里的现值（三档表、10 条规则名、腿×形态、端口、计数预算、CI 覆盖表、`SAMPLES` 旋钮、台账的接线、份数与条数的每一份抄本） | `rows: 52 fail: 0`，`DOCTEST_RC=0` |
 | `npm run balance` → `node tools/balance.mjs` | 出货率、成本 p95、难度阶梯、铅笔的选择性（对着多解盘）、菜单那句「实测」 | `合计红线 0 条破口`，`BALANCE_RC=0` |
-| `bash tools/verify.sh` | 真 Chrome + CDP 真事件，读 DOM 文本/几何与画布像素，不读内部标志位 | `=== ALL GREEN ===`，604 条断言 / 0 失败，`VERIFY_RC=0` |
-| `GATE_SELFTEST=1 bash tools/verify.sh` | 每一份报告都必须吃下一条注定错的期望 | `rc=1`、28 行具名红，`SELFTEST_RC=1` |
+| `bash tools/verify.sh` | 先跑三道逻辑闸（`engine-test` / `doctest` / 台账，条数钉在脚本的 `LOGIC_EXPECTS`），再上真 Chrome + CDP 真事件，读 DOM 文本/几何与画布像素，不读内部标志位 | `=== ALL GREEN ===`，28 份报告 / 604 条断言 / 0 失败，`VERIFY_RC=0` |
+| `GATE_SELFTEST=1 bash tools/verify.sh` | 每一份报告都必须吃下一条注定错的期望 | `rc=1`、28 行具名红（应有 28 份、实到 28 份、28 份点名），`SELFTEST_RC=1` |
+| `python3 tools/sabotage.py` | 上面每一行"会红"的说法：名单里的刀逐条下在副本上，红必须整段点名它承诺的那条等式 | `SAB_RC=0`，逐把读数在 `_tmp-hebi-verify-r3.log` |
 
-上面这一列的 rc 全写在同一份日志里（`_tmp-hebi-gates-r5.log`）。表里那些 ms 是从**同一次跑**抄来的读数：
-回填这些数字之后再重跑的，是 `doctest`（`_tmp-hebi-poststamp-r5.log`）与破坏试验台架
-（`_tmp-hebi-sab-run-r5.log`，对照两项印在这份日志的开头）——
+上面这一列的 rc 全写在同一份日志里：这一轮是 `_tmp-hebi-verify-r3.log`（`bash tools/verify.sh`
+自己那一份现场，`START=` / `END=` 两行是它的首尾，`VERIFY_RC=` 由那条命令追加进去，
+`HEAD=` 那一行说的是它跑在哪一棵树上）。这一族日志由 `.gitignore` 挡在仓外（`_tmp-*`），
+所以它不在 clone 里——它是"本机这一遍"的证人，任何人敲一遍上面那条命令就重新生成一份。
+表里那些 ms 是从**同一次跑**抄来的读数：回填这些数字之后再重跑的，是 `doctest` 与破坏试验台架
+（对照两项印在台账日志的开头）——
 因为没有任何闸比 ms，闸比的是步数、条数和等式。
 
 ### `npm test` 的逐尺寸读数（12 个 seed，`tools/engine-test.mjs`）
@@ -174,9 +181,15 @@ save 16 / nav 4 / resume 18 / reload 4 / corrupt 9，每形态 302 条 · 合计
 | `node tools/doctest.mjs` | check | `Docs are asserted surface` |
 | `bash tools/verify.sh` | browser | `Browser gate, both local URL shapes` |
 | `GATE_SELFTEST=1 bash tools/verify.sh` | browser | `Gate proves it can fail` |
+| `python3 tools/sabotage.py` | browser | `Ledger doses every documented claim` |
+| `node tools/deploy-set.mjs` | check | `Deploy set gate` |
+| `node tools/deploy-set-selftest.mjs` | check | `Deploy set gate proves it can fail` |
 
-`npm run check` 的等价物（逐文件 `node --check`）在 `check` job 的 `Syntax check every source` 一步，
-`Entry files exist` 只查 `index.html` 里的三个记号，两者都不是"门禁命令"，所以不进上面那张表。
+语法在 CI 里就是调 `npm run check` 本身（`check` job 的 `Syntax check every source` 一步）。这一步以前手抄
+三份 `for f in $(git ls-files …)` 循环，那三份和 leg 的 find 根**都**不含根目录的 `sw.js`——一份解析不了的
+服务工作脚本因此能在两道闸都绿的情况下上线，本轮把它补进 leg 的根，并用 `D6d` 同时钉住"CI 只调 leg"与
+"树上每个 `.js/.mjs/.cjs` 都落在某个根里"。`Entry files exist` 只查 `index.html` 里的三个记号，
+这两步都不是新增的门禁命令，所以不进上面那张表。
 
 ---
 
@@ -204,17 +217,40 @@ save 16 / nav 4 / resume 18 / reload 4 / corrupt 9，每形态 302 条 · 合计
 | 坏档 = 没有存档，不是白屏 | 浏览器 `corrupt` 腿 | 种入脏字段后的第一帧 | `9 条 0 失败` |
 | 两种 URL 形态都算数 | `tools/verify.sh` 的 preflight + 腿循环 | 前缀形态与根形态各自 serve 本仓字节 | `2 个形态 · 28 份报告` |
 | 闸自己会红——每一份报告都会红 | `GATE_SELFTEST=1` 那一步 | 分母由 `LEGS` 现算，没种上错期望的报告点名 | `rc=1`、`28 行具名红` |
-| 文档印的数就是代码里的现值 | `node tools/doctest.mjs`（本轮新建） | 三档表 / 10 条规则名 / 腿×形态 / 端口 / 预算 / CI 覆盖表 / `SAMPLES` | `rows: 36 fail: 0` |
+| 文档印的数就是代码里的现值 | `node tools/doctest.mjs` | 三档表 / 10 条规则名 / 腿×形态 / 端口 / 预算 / CI 覆盖表 / `SAMPLES` / 台账的接线 / 家门口的钉 / 份数与条数的每一份抄本 | `rows: 52 fail: 0` |
+| 台账每把刀红在它点名的那条等式上，而且有人跑它 | `tools/sabotage.py`（本轮从仓外搬进仓里；CI browser job 的一步，`npm run sabotage` 也调得到） | 副本上下刀 → 只跑它所属那道闸 → 点名行必须**整段等于**这把刀写的那条；"有人跑它"这句话由 H14 砍 CI 那一步来红 | 名单里的刀逐条点名（D11c/D11e 现数对账），见 §破坏试验台账 |
 
 ## 破坏试验台账
 
-台架在**仓外副本**上跑（`_tmp-hebi-copy/hebi`，真仓一个字节不动），一次只改一个字段，
-每把刀之前重新拷一份树；needle 在目标文件里必须恰好出现 1 次，对不上就报 `ERROR` 而不是静默跳过。
+台架是 `tools/sabotage.py`，在**仓内副本**上跑（`_sabotage-copy/`，`.gitignore` 里；真仓一个字节不动），
+一次只改一个字段，每把刀之前重新拷一份树；needle 在目标文件里必须恰好出现 1 次，对不上就报 `ERROR` 而不是静默跳过。
 H13 是**命令刀**：它一个字段都不改，只把当年会空跑的那条命令在未改动的副本上照敲一遍——
 "这个洞堵上了"要有人敲给它听，不能只写在表里。
 刀跑之前先跑**对照**：未改动的副本上 `doctest` 与 `balance` 都必须绿，否则"红了"说明不了是刀咬的。
-定稿后整轮重跑：14 枪 / 与预期不符 0 / `SAB_RC=0`（`_tmp-hebi-sab-run-r5.log`，
-对照两项在同一份日志的开头）。
+每一遍整跑都把自己的读数写进它自己那份日志（`START=` / `END=` 是首尾，`VERIFY_RC=` 由那条命令追加进去），
+所以这一页只说"本轮绿"，不抄本轮的数：定稿树上 `bash tools/verify.sh` 的开头是三道逻辑闸各自的 ✓ 行
+（engine-test 0 项失败、doctest 0 项失败、台账每一把都点名了自己那条等式），末行 `=== ALL GREEN ===`；
+逐条的数——三道闸各自的条数、每一把刀的 rc 与它点名的那一行——住在 `_tmp-hebi-verify-r3.log` 里，
+脚本把台账的 stdout 整段打进那份日志，不是只留几行尾巴。
+两颗条数钉也不在文档里重复一遍：它们只住在 `tools/verify.sh` 的 `LOGIC_EXPECTS` 一行上，
+由 `doctest` 的 `D11b`/`D11c`/`D11e` 反向核对（本闸项数、台账源码现数的刀数、逐枪表解析到的刀数）。
+这一圈循环没有尽头——每一遍的树里都带着上一遍的引用——所以它由两条东西兜住：
+N1 那一枪证明"往文档里插一句不带数的散文"不让闸红，而 CI 每次都会重跑这份台账，
+下一句引用如果弄坏了哪把刀的 needle，台账会直接报 `ERROR`（needle 必须恰好命中 1 次）。
+
+搬进来这件事本身改了四处，每一处都是"这句话以前只有一个人在说"：
+
+- 台架从前住 `_tmp-hebi-sab.py`（仓外）。README 那时候就写着"14 枪 / 与预期不符 0"，可 CI 看不见它、
+  `npm` 也调不到它——改断言的人不会撞上它，它红不红只活在某一台机器的终端记录里。
+- 副本从前落在工作区根目录的 `_tmp-hebi-copy/hebi`：那一层是**所有会话共用**的，两个 agent 同时跑台账
+  会互相把对方的副本 `rmtree` 掉。现在副本在自己仓里，跟着仓一起被 clone，CI 的 runner 上也一样跑得动。
+- 判定从前是**子串**：`want='D2'` 时只要红行里有 `D2` 就算点名，而本仓的标签恰好是 D2 / D2a / D2b 这一族，
+  于是"红在隔壁"（只红 `D2a`）也会被记成 OK。现在要求整段相等，下面那张表最后一列就是每把刀的实跑标签。
+- 这条接线自己也需要一把刀：H14 把 CI 里那一步换成 `echo "ledger not wired"`，`D6c` 必须红。
+  "有台账"和"有人跑台账"是两句话，后者从前没人守。
+
+CI 上那一遍也留下读数：run `37118072944` 的 browser job 第 6 步用 2 分 20 秒跑完并且 success
+（两个 job 的逐步耗时抄在 `_tmp-ci-steps-1003.log`，那份文件是从 Actions API 打印的，不是手记的）。
 
 | 刀 | 改哪里 | 期望 | 实跑（闸自己点名的等式） | 咬到它的闸 |
 | --- | --- | --- | --- | --- |
@@ -231,7 +267,13 @@ H13 是**命令刀**：它一个字段都不改，只把当年会空跑的那条
 | H11 | `tools/balance.mjs` 的 `envn` 改成常量 0（把 env 接线弄回装饰，等式那半边照绿） | 红 | 红 `D7b` | `doctest` 的 `D7b`（子进程探针：`SAMPLES=3` 必须打印「× 3 张」） |
 | H12 | README 的每形态条数 302 改成 300 | 红 | 红 `D8` | `doctest` 的 `D8`（逐腿条数加起来必须等于它自己写的两个总数） |
 | H13 | 不改文件，把当年空跑的那条命令照敲一遍：`LEGS=hint bash tools/verify.sh` | 红，且要点名「未知的腿」 | `rc=1` · `RED 未知的腿：hint` | `verify.sh` 的 `*)` 分支（命令刀：补闸之前这一枪打出的是 `=== ALL GREEN ===` 加 0 份报告） |
-| N1 | README 的难点小节里插一句不承载任何数的散文 | 不该红 | 不红（`rows: 36 fail: 0`） | —（对照组：台账也得证明它不咬无关的话） |
+| H14 | 把台账在 CI browser job 里那一步换成 `echo "ledger not wired"`（台架还在、没人跑它） | 红 | 红 `D6` `D6c` | `doctest` 的 `D6c`（四处接线各读一遍：ci / package.json / README / 这把刀本身） |
+| H15 | `tools/verify.sh` 的 `LOGIC_EXPECTS` 把 doctest 那一项钉小 1 | 红 | 红 `D11b` | `doctest` 的 `D11b`（家门口的钉与本闸实跑项数不是同一个数） |
+| H16 | 摘掉 `tools/verify.sh` 里跑 doctest 的那一行调用 | 红 | 红 `D11d` | `doctest` 的 `D11d`（三道逻辑闸少了一条真调用；注释里提到路径不算调用） |
+| H17 | `ci.yml` 的 Syntax 那一步从 `npm run check` 换回手抄的 `for` 循环（同一行内替换，不挪行号） | 红 | 红 `D6d` | `doctest` 的 `D6d` 的前半：那一步只许调那条 leg |
+| H18 | `package.json` 的 `check` leg 把 `js` 从 find 根里删掉（其余不动） | 红 | 红 `D6d` | `doctest` 的 `D6d` 的后半：树上每个 `.js/.mjs/.cjs` 都必须落在某个根里 |
+| H19 | README 门禁清单里 `bash tools/verify.sh` 那一行的断言条数 604 改成 605（同行内替换，不挪行号） | 红 | 红 `D12b`（同时 `D12d` 也断：它要在原文里找到那句才能改坏，找不到就等于没测） | `doctest` 的 `D12`：份数与条数在文档里被写了四处（闸的形状、逐报告条数、门禁清单、承诺表），`D3`/`D8` 管前两处、`D12` 把后两处钉回同一把现推的尺子 |
+| N1 | README 的难点小节里插一句不承载任何数的散文 | 不该红 | 不红（`rows: 52 fail: 0`） | —（对照组：台账也得证明它不咬无关的话） |
 
 台账自己教的四件事：
 
@@ -259,3 +301,52 @@ H13 是**命令刀**：它一个字段都不改，只把当年会空跑的那条
 音效没有任何闸观察到一次发声；10 条铅笔规则是否每条都会开火没量过；
 `generate.js` 头部注释里的历史对照数（`2/60`、`396 次计数 ≈ 19 s`、`20/30 · 19 ms`）是写代码时的
 判断记录，本轮不复现；移动端只证到「几何没坏」，没有真机。
+
+## 上线的到底是哪一批文件
+
+这个仓没有打包器：站点=一次文件拷贝。以前「拷哪些」写在 `pages.yml` 的 `run:` 里（手抄的几行
+`cp`）。本地 `index.html` 直读仓库根，永远自洽；线上却按那份清单拷，于是页面后来引用的
+`manifest.webmanifest`、`sw.js`、`icons/*` 可能一个都没上去——线上 404，而仓里的引擎测试与
+真浏览器闸全绿，因为它们跑的都是仓库根，没有任何一步在「按清单拷」的那个环境下加载过页面。
+
+现在清单只有一份，住在 `tools/assemble-site.sh`：CI 调它拷 `_site`，本地闸调它拷临时目录，
+然后**对拷出来的产物**提要求（`tools/deploy-set.mjs`）：
+
+- **W 清单与页面同源**：`pages.yml` 里必须真有 `run: bash tools/assemble-site.sh <dir>` 这一行，
+  `ci.yml` 里必须真有 `run: node tools/deploy-set.mjs`。认的是调用那一行，不是文件里出现过这个
+  路径——注释里本来就会写它，只 grep 字符串会被一句散文喂绿。
+- **R 引用可达**：引用不靠手打名单。从 `index.html` 的 `href/src` 出发，凡解析出来是 `.js`/`.css`
+  的就把那一站也扫一遍（CSS 的 `url()`、JS 去掉注释后的 `'./…'` 字面量、`new URL(x, base)` 的两种
+  基、`navigator.serviceWorker.register`、`scope`），`manifest` 的 icons/screenshots/shortcuts 各自
+  的 `src` 也算引用。取径上读不到的那一站本身就是红（读不到＝这一站根本没扫）。每条引用都必须在
+  产物里且非 0 字节；绝对路径单列一条红，因为 Pages 挂在 `/<repo>/` 前缀下会跳出去。
+- **P 位图不许说谎**：`manifest` 声明的 `sizes` 必须等于 PNG IHDR 的真实宽高——文件图标读文件头，
+  内联成 base64 的图标先解码再读同一段。后一条不是可选项：图标可能住在清单里而不是盘上的 `.png`
+  （有的仓另有一条"零二进制文件"的承诺，那条只约束"有没有 .png 这个文件"）；如果 P 段只筛文件名，
+  声明写 512 而真图 192 就一路放行。
+- **钉住两个数**：R 段实际检查的路径条数（`33`）与这一次跑的断言条数（`51`），两个数
+  都钉在 `tools/deploy-set.mjs` 顶部的那对常量里。没改页面却掉了，说明解析断了；删掉一张图标会同时
+  少一条 R10 与那张的 P1/P2，所以两个数一起钉，断言条数能漂就是闸在缩水的信号。这一节故意只写数值、
+  不写那对常量的名字，也不写别仓文档闸的编号：有的仓的文档闸会拿"文档里出现过的同名标识号"回数它
+  自己的条数，还有的会把文档里点到的每个组编号逐个核对"这一轮真的发过"——两道闸共用一个名字，
+  或者在本仓的文档里出现一个本仓没有的组编号，打红的都是不相干的那一边。
+
+`tools/deploy-set-selftest.mjs` 是这两颗钉的阳性证明：它把仓库复制到临时目录，照着每一类断言
+各下一刀（X1 清单不收位图目录 / X2 模块边改名 / X3 CSS 写绝对路径 / X4 `start_url` 绝对 /
+X5 删光 >=512 图标 / X6 少一个必填字段 / X7 声明尺寸与真图不符 / X8 workflow 不调脚本 /
+X9 CI 不跑闸 / X10 是阴性对照——往入口 JS 追加一行只写在注释里的假路径，闸必须仍然绿、条数仍然
+`33`、断言仍然 `51`；X11 og:image 退回相对路径 / X12 og:image 的前缀指向别的 slug /
+X13 内联位图谎报尺寸——只在有靶子时下：X11/X12 要页面上那句 og:image，X13 要清单里真有一段 base64
+图标，没有就打印 SKIP；反过来 X1 没有位图目录可砍时改砍 css，P 段一位都不核时台架直接报靶子不够），
+要求每一刀都让闸**点名**变红。靶子从 `DEPLOY_SET_DUMP=1`
+的出处表现挑（取径真的会读的那支 JS / 那一张 CSS，不写死某一个仓的入口名），所以页面改了、仓与仓
+不同，台架跟着走。
+
+`node tools/deploy-set.mjs` 与 `node tools/deploy-set-selftest.mjs` 就是 CI 跑的那两条命令本身
+（package.json 里的 `deploy-set` / `deploy-set:selftest` 只是同一支脚本的 npm 入口）；本仓的整闸在 `tools/verify.sh` 的 `=== deploy-set ===` 那一段也各跑一次。它们红的时候并进本仓那条出口的退出码——这一条是这么证的：
+把 ci.yml 里那行 `run: node tools/deploy-set.mjs` 砍掉，本仓整闸必须点名红且退出码非 0。
+所以「本地全绿、线上 404 自己的 manifest / sw.js / 图标」这一类坏法在本地就会红。
+
+## 在线试玩
+
+<https://z-biz-game.github.io/z-biz-game-hebi-cos/>（`main` 分支推送即自动部署）

@@ -11,7 +11,7 @@
 //   * 只比现值，不比读数：ms、出货率、节点数这类本机测量在这里只作为「文档写的数
 //     与代码里的界」的关系出现（D5），不去复测它们；
 //   * 破坏试验台账（README 最后一节）逐条验过这里的刀真的会红。
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -21,8 +21,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const fail = [];
 let rows = 0;
+// D12e 数的是"这一次真的跑过哪些组"，所以组号在 ok() 里顺手记下来：标签是唯一的真相来源，
+// 整段删掉一组，那一格就从这里消失。
+const emitted = new Set();
 const ok = (cond, label, detail) => {
   rows++;
+  const g = /(?:^|[^A-Za-z0-9_])D(\d+)/.exec(label);
+  if (g) emitted.add(+g[1]);
   if (!cond) fail.push(label);
   console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${label} · ${detail}`);
 };
@@ -142,6 +147,40 @@ const unlisted = [...new Set(ciCommands)].filter((c) => ![...ciRows].some((r) =>
 ok(unlisted.length === 0, 'D6b ci.yml 里跑的每个 tools 门禁都被覆盖表列了（文档不许比门禁松）',
   unlisted.length ? `漏了：${unlisted.join(' ')}` : `runner 里 ${[...new Set(ciCommands)].join(' ')} 全在表上`);
 
+// ---- D6d 语法那一步只许调 leg，而且 leg 自己的根要真的盖住树 ----
+// 这一步以前手抄了三份 `for f in $(git ls-files …)` 循环。抄本的坏处不是啰嗦，是"两份真相"：
+// leg 改了抄本不会跟着红。更糟的是抄本自己漏东西——根目录的 `sw.js` 既不在那三份的 glob 里，
+// 也不在 `check` leg 的 find 根里，于是一份解析不了的服务工作脚本能一路绿到上线（本轮实测）。
+const syntaxStep = (CI.match(/- name: Syntax check every source\n([\s\S]*?)(?=\n {6}- name:)/) || [])[1] || '';
+const legCallsCheck = /\brun:\s*(?:\|\s*\n)?\s*npm run check\b/.test(syntaxStep);
+const legRoots = (((PKG.scripts.check || '').match(/find\s+(.+?)\s+-type f/) || [])[1] || '').trim().split(/\s+/).filter(Boolean);
+const srcFiles = [];
+(function walk(dir, rel) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name === '.git' || e.name === '_scratch') continue;
+    const p = rel ? `${rel}/${e.name}` : e.name;
+    if (e.isDirectory()) walk(join(dir, e.name), p);
+    else if (/\.(js|mjs|cjs)$/.test(e.name)) srcFiles.push(p);
+  }
+})(ROOT, '');
+const outside = srcFiles.filter((f) => !legRoots.some((r) => f === r || f.startsWith(`${r}/`)));
+ok(legCallsCheck && legRoots.length >= 4 && outside.length === 0,
+  'D6d CI 的 `Syntax check every source` 那一步直接调 `npm run check`，而那条 leg 自己的 find 根盖住树上每个源码文件（手抄一份 loop 就是第二份真相：leg 改了抄本不红，抄本漏一个根＝那个文件从此没人 `node --check`）',
+  `CI 那一步实到 ${JSON.stringify((syntaxStep.split('\n').map((s) => s.trim()).filter((s) => s && s !== 'run: |')[0] || '解析不到'))} · leg 根 ${legRoots.join(' ') || '解析不到'} · 根外的源码文件 ${outside.length ? outside.join(' ') : '0 个'}（树上一共 ${srcFiles.length} 个）`);
+
+// D6c 钉的是"有人跑台账"这句话本身。台账是个文件，文件躺在仓里不等于 CI 会跑它——
+// 所以四处各查一遍，缺任何一处就红，而 H14 这把刀砍的正是 CI 里那一步（少了它 D6c 必须自己变红）。
+const SAB = existsSync(join(ROOT, 'tools/sabotage.py')) ? read('tools/sabotage.py') : '';
+const sabWires = {
+  ci: /run: python3 tools\/sabotage\.py/.test(jobBlocks.browser || ''),
+  pkg: ((PKG.scripts || {}).sabotage || '').trim() === 'python3 tools/sabotage.py',
+  readme: /python3 tools\/sabotage\.py/.test(README),
+  knife: /'D6c'/.test(SAB),
+};
+ok(Object.values(sabWires).every(Boolean),
+  'D6c 破坏台账接进了 browser job、package.json 与 README，而且这条接线自己有一把刀（砍掉任何一处它就只是一段代码）',
+  Object.entries(sabWires).map(([k, v]) => `${k}=${v ? '在' : '缺'}`).join(' · ') + (SAB ? '' : ' · 台架文件不在树里'));
+
 // ---- D7 SAMPLES 旋钮：ci.yml 的值 == 文档引用的值 == 不接线时的默认，且 env 真的接得上 ----
 const ciSamples = (CI.match(/SAMPLES: "(\d+)"/) || [])[1];
 const docSamples = (README.match(/CI 用 SAMPLES=(\d+) 跑 balance\.mjs/) || [])[1];
@@ -180,22 +219,41 @@ ok(!!totals && perShape * shapes === +totals[2], 'D8b 每形态条数 × 形态�
 
 // ---- D9 引用不漂：文档里每一个 path:NN 都指向真实文件里真实存在的那一行 ----
 const cites = [...DOCS.matchAll(/((?:\.github\/workflows\/)?[\w./-]+\.(?:js|mjs|cjs|sh|json|html|yml)):(\d+)(?:-(\d+))?/g)];
-const bad = [];
-for (const c of cites) {
+// 一条引用的两道查抽成一个函数，是因为下面那把空行刀要走**同一条代码路径**：把空行那一道删掉，范围检查
+// 照样全绿，只有这一把会立刻红——否则新加的那道查就是一张没有对照的等式。
+const citeMiss = (file, fromRaw, toRaw) => {
+  const label = `${file}:${fromRaw}${toRaw ? '-' + toRaw : ''}`;
   let src;
   try {
-    src = read(c[1]);
+    src = read(file).split('\n');
   } catch {
-    bad.push(`${c[1]}:${c[2]}（文件不存在）`);
-    continue;
+    return `${label}（文件不存在）`;
   }
-  const n = src.split('\n').length;
-  if (+c[2] > n || (+c[3] && +c[3] > n)) bad.push(`${c[1]}:${c[2]}${c[3] ? '-' + c[3] : ''}（该文件只有 ${n} 行）`);
+  const from = +fromRaw;
+  const to = +(toRaw || fromRaw);
+  if (from > src.length || to > src.length) return `${label}（该文件只有 ${src.length} 行）`;
+  // 「在界内」不等于「指到了代码」：D9 只问行号存在吗，句子里没贴名字的裸引用它一条锚点都拿不到，
+  // 所以整段空白必须在这里红——否则它指着的只是一片行距。
+  if (src.slice(from - 1, to).join('').trim() === '') return `${label} 那几行整段是空行`;
+  return '';
+};
+const bad = [];
+for (const c of cites) {
+  const miss = citeMiss(c[1], c[2], c[3]);
+  if (miss) bad.push(miss);
 }
+// 反空转的刀：空行靶子现量（本闸自己这份文件的第一处空行），不写死——写死的那个数会在有人填了那一行之后
+// 悄悄地不再测任何东西，`blankAt > 0` 把那一天变成红。
+const probeBlank = read('tools/doctest.mjs').split('\n');
+let blankAt = 0;
+for (let i = 1; i < probeBlank.length; i++) if (String(probeBlank[i]).trim() === '') { blankAt = i + 1; break; }
+const blankKnife = blankAt ? citeMiss('tools/doctest.mjs', blankAt, null) : '';
 ok(cites.length >= 20, 'D9a 文档里的行号引用解析到了一大堆（少于 20 条说明引用格式改了）',
   `${cites.length} 条引用`);
-ok(bad.length === 0, 'D9 每一条 path:NN 引用都落在真实文件的行数内',
-  bad.length ? `越界：${bad.join('，')}` : `${cites.length} 条全部在范围内`);
+ok(bad.length === 0 && !!blankKnife, 'D9 每一条 path:NN 引用都落在真实文件的行数内、且被指的那几行整段不许是空行（这一格自己带一把指向空行的刀）',
+  bad.length ? `越界/不存在/空行：${bad.join('，')}`
+    : blankKnife ? `${cites.length} 条全部在范围内 · 刀：第 ${blankAt} 行是空行，指过去判红`
+      : '本闸自己的文件里找不出空行靶子 —— 空行那一道没被证明过');
 
 // ---- D10 红线标签双向：文档点名的每条红线都得存在，存在的每条红线都得有人写 ----
 const realLabels = [...new Set([...BAL.matchAll(/\b(B\d(?:b)?)(?=[ 　])/g)].map((m) => m[1]))];
@@ -208,6 +266,88 @@ ok(missing.length === 0, 'D10 文档点名的每条红线在 balance.mjs 里都�
   missing.length ? `文档引用了不存在的红线：${missing.join(' ')}` : `${docLabels.sort().join(' ')} 全部存在`);
 ok(undocumented.length === 0, 'D10b balance.mjs 里每条红线都被文档点名（新增红线不能没人写）',
   undocumented.length ? `没写进文档：${undocumented.join(' ')}` : '一一对上');
+
+// ---- D12 同一件事的三份抄本：报告数与断言数在文档里被写了三次，这里让它们对同一个现推值 ----
+// D3 管「闸的形状」那一句、D8 管「逐报告条数」那一段，可 README 另有两处各自写着份数与条数
+// （门禁清单的 verify 那一行、承诺表的形态那一行）。它们与上面两处是**同一个事实的第四次抄写**：
+// 加一份报告、或给某条腿多一条断言时，改了 A 处忘了 B 处，文档就同时印着两个数，而两处都绿。
+const shapeTotal = reportsPerShape * shapes;   // 现推：一次跑多少份报告
+const assertTotal = perShape * shapes;         // 现推：一次跑多少条断言
+const PAIR_RE = /(\d+) 份报告 \/ (\d+) 条断言 \/ 0 失败/g;
+const SHAPE_RE = /(\d+) 个形态 · (\d+) 份报告/g;
+const pairClaims = [...README.matchAll(PAIR_RE)];
+const shapeClaims = [...README.matchAll(SHAPE_RE)];
+const pairMiss = pairClaims.filter((m) => +m[1] !== shapeTotal || +m[2] !== assertTotal);
+const shapeMiss = shapeClaims.filter((m) => +m[1] !== shapes || +m[2] !== shapeTotal);
+ok(pairClaims.length >= 1 && shapeClaims.length >= 1,
+  'D12a README 里"份数 + 条数"那两形各解析到了至少一处（抄本被删光时这里红，不是那两格变空转绿）',
+  `「N 份报告 / M 条断言 / 0 失败」${pairClaims.length} 处 · 「K 个形态 · N 份报告」${shapeClaims.length} 处`);
+ok(pairMiss.length === 0, `D12b 每一处「N 份报告 / M 条断言」都等于脚本现推的（${shapeTotal} 份 / ${assertTotal} 条）`,
+  pairMiss.length ? `漂：${pairMiss.map((m) => `${m[1]} 份/${m[2]} 条`).join('，')}`
+                  : `${pairClaims.length} 处全部等于 ${shapeTotal}/${assertTotal}`);
+ok(shapeMiss.length === 0, `D12c 「K 个形态 · N 份报告」等于现推的（${shapes} 形态 · ${shapeTotal} 份）`,
+  shapeMiss.length ? `漂：${shapeMiss.map((m) => `${m[1]} 形态/${m[2]} 份`).join('，')}`
+                   : `${shapeClaims.length} 处全部等于 ${shapes}/${shapeTotal}`);
+// 阳性对照下在内存里：把其中一处抄本改坏一个数，同一套比较必须认它漂。
+// 没有这一格，D12b/D12c 与"正则最近没匹配上任何东西"这件事就没有区别——都绿得没有证人。
+const bite = (text) => [...text.matchAll(PAIR_RE)].some((m) => +m[1] !== shapeTotal || +m[2] !== assertTotal)
+  || [...text.matchAll(SHAPE_RE)].some((m) => +m[1] !== shapes || +m[2] !== shapeTotal);
+const fakePair = README.replace('28 份报告 / 604 条断言', '28 份报告 / 605 条断言');
+const fakeShape = README.replace('2 个形态 · 28 份报告', '2 个形态 · 29 份报告');
+ok(fakePair !== README && fakeShape !== README && pairClaims.length === 1 && shapeClaims.length === 1
+   && bite(fakePair) && bite(fakeShape) && !bite(README),
+  'D12d 内存阳性对照：两处抄本各改一个数，这套比较都必须认它漂（改回真的就等于没测）',
+  `604→605 ${bite(fakePair) ? '认漂' : '没认'} · 28→29 ${bite(fakeShape) ? '认漂' : '没认'} · 原文 ${bite(README) ? '被误判漂' : '判为等'}`);
+
+// ---- D11 家门口的门：verify.sh 必须跑这三道逻辑闸，而且钉的条数与实跑一致 ----
+// 补的是「门只在 CI 里跑」这个缺陷：CI 的 check job 有 engine-test 与 doctest 两步、browser job
+// 有台账一步，而本地那道 one-shot 以前一步都不跑——改闸的人在自己机器上看见的绿，是另一套。
+// D11a 先数解析到几颗钉：读不到那一行时后面三条都会变成"什么都不比较"的空转绿。
+const pinBlock = (VERIFY.match(/^LOGIC_EXPECTS="([^"]+)"/m) || [])[1] || '';
+const pins = Object.fromEntries(pinBlock.split(/\s+/).filter(Boolean).map((kv) => kv.split(':')));
+ok(Object.keys(pins).length === 2 && !!pins.doctest && !!pins.sabotage,
+  'D11a verify.sh 的 LOGIC_EXPECTS 解析到且只解析到两颗钉（doctest 与 sabotage）',
+  pinBlock || 'verify.sh 里没有 LOGIC_EXPECTS 那一行');
+const knives = (SAB.match(/^\s{4}\('(H\d+|N\d)',/gm) || []).length;
+ok(!!pins.sabotage && +pins.sabotage === knives,
+  'D11c verify.sh 钉的刀数 == 台账源码里现数的刀数（加一把刀要两边一起走）',
+  `钉 ${pins.sabotage || '无'} · 现数 ${knives}`);
+// 行首的环境变量赋值（台账那一条就是 `HEBI_VERIFY_INSIDE_LEDGER=1 python3 …`）先剥掉再判，
+// 但注释行仍然落在门外：注释里提到路径不等于真的调了。
+const callLines = VERIFY.split('\n')
+  .map((l) => l.replace(/^\s*(?:[A-Z][A-Z0-9_]*=\S*\s+)+/, ''))
+  .filter((l) => /^(node|python3)\s/.test(l));
+const called = ['tools/engine-test.mjs', 'tools/doctest.mjs', 'tools/sabotage.py']
+  .filter((c) => callLines.some((l) => l.includes(c)));
+ok(called.length === 3, 'D11d verify.sh 里三道逻辑闸各有一条真调用（注释里提到不算调用）',
+  called.join(' · ') || '一条都没有');
+const finalRows = rows + 4; // D11b、D11e、D11f、D12e 各是本闸的一项，它们排在最后
+ok(!!pins.doctest && +pins.doctest === finalRows,
+  `D11b verify.sh 钉的 doctest 项数 == 本闸实跑项数（${finalRows}，含 D11 这六条）`,
+  `钉 ${pins.doctest || '无'} · 实跑 ${finalRows}`);
+// README 那张逐枪表是台账对外的说法：刀加在源码里、表没跟着写，读文档的人就以为台账只有这些。
+const docKnives = [...new Set([...README.matchAll(/^\| (H\d+|N\d) \|/gm)].map((m) => m[1]))];
+ok(docKnives.length === knives,
+  `D11e README 逐枪表解析到的刀数 == 台账源码现数的刀数（${knives}；解析到 ${docKnives.length} 行）`,
+  docKnives.length ? `文档 ${docKnives.sort().join(' ')} vs 源码 ${knives}` : '表里一行都没解析到');
+// 文档里 `rows: N fail: 0` 那几处是"本闸本轮的读数"：它们是抄的，而抄的数没人核对就会漂
+// （DESIGN 里那两句带日志名的历史记录是某一轮的读数，不在这一处对账的范围内）。
+const docRows = [...new Set([...README.matchAll(/rows: (\d+) fail: 0/g)].map((m) => m[1]))];
+ok(docRows.length === 1 && docRows[0] === String(finalRows),
+  `D11f README 里 \`rows: N fail: 0\` 只出现一个 N，而且等于本闸实跑项数（${finalRows}）`,
+  docRows.length ? `文档 ${docRows.join('/')}` : '文档里一处 rows: 都没解析到（那就是把这几处删了）');
+
+// 这一格排在最后是有原因的：它要数的是"这一次跑过的组"，而 D11 自己那几项也得先进 emitted。
+// 文档点名的 D 编号是玩家/改闸的人按图索骥的入口——入口指到一洞不存在、或指到一个这一遍
+// 没跑的组，都比"少一条断言"更坏，因为它是绿的假话。
+const GROUPS_TOTAL = 12;
+const dMentions = [...new Set((DOCS.match(/(?<![A-Za-z0-9_])D\d+/g) || []))].map((x) => +x.slice(1)).sort((a, b) => a - b);
+const unknownD = dMentions.filter((v) => !emitted.has(v));
+ok(dMentions.length >= 10 && dMentions.length <= GROUPS_TOTAL && unknownD.length === 0
+   && emitted.size === GROUPS_TOTAL,
+  `D12e 文档点名的每个 D 编号都在这一次实跑的 ${GROUPS_TOTAL} 个组里（编号写到不存在的那一组就红）`,
+  unknownD.length ? `没有对应检查：${unknownD.map((v) => 'D' + v).join(' ')}`
+                  : `文档点名 ${dMentions.join('/')} · 本次实跑 ${emitted.size} 组`);
 
 console.log(`\n合计 ${rows} 项，${fail.length} 项失败`);
 console.log(`rows: ${rows} fail: ${fail.length}`);

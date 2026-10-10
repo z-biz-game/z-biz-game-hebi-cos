@@ -97,7 +97,7 @@
 
 | 承诺 | 守它的东西 |
 | --- | --- |
-| 语法能过 | `npm run check`（`package.json:11`）+ CI 逐文件 `node --check`（`.github/workflows/ci.yml:26`） |
+| 语法能过 | `npm run check`（`package.json:11`），CI 的那一步就是调它（`.github/workflows/ci.yml:26`）。`D6d` 两头都钉：这一步不许换回手抄 loop，leg 的 find 根不许漏掉树上任何 `.js/.mjs/.cjs`（根目录的 `sw.js` 就是这么漏掉过） |
 | 唯一解 / 零猜测 / 同 seed 可复现 | `npm test` 127 条（`tools/engine-test.mjs:105` 唯一性证完、`tools/engine-test.mjs:121` seed 确定性） |
 | 阶梯与耗时预算 | `npm run balance` B1–B6（`ci.yml` 的 `Difficulty ladder is still measured` 一步设 `SAMPLES: "20"`，`balance.mjs` 末尾 `process.exit(red ? 1 : 0)`） |
 | 状态读数、留空、黑格不可改、胜利三条件 | 浏览器 `play/hint/win` 腿（`tools/scenarios.js:200`、`tools/scenarios.js:312`） |
@@ -109,10 +109,10 @@
 | 片段导航不算重载 | `tools/verify.sh:202`，本轮 4 条断言：`timeOrigin` 与文档身份都不许变 |
 | 坏档 = 没有存档，不是白屏 | `tools/scenarios.js:447`–`tools/scenarios.js:453`（本轮 corrupt 腿 9 条） |
 | 两种 URL 形态都算数 | `tools/verify.sh:47`（前缀形态由 `server.cjs:12` 实现，不是为测试另写一个服务）；preflight 先证明端口上的字节是本仓的（`tools/verify.sh:53`–`tools/verify.sh:60`） |
-| 闸自己会红——而且是**每一份报告**都会红 | 场景腿由 `tools/scenarios.js:29` 种一条 1==2，node 侧的真事件腿与 nav/reload 由 `tools/playtest.cjs:38` 的 `result()` 种同一条；分母从 `LEGS` 现算（`tools/verify.sh:236-245`），哪一份没种上就点名哪一份（`tools/verify.sh:128`）。CI 要求 `rc≠0` **且**日志点名 `FAIL`（`.github/workflows/ci.yml:81`、`.github/workflows/ci.yml:82`） |
-| 什么都没断言的腿不算绿 | `tools/verify.sh:113`（没有 RESULT 行）、`tools/verify.sh:121`（NO CHECKS RUN） |
+| 闸自己会红——而且是**每一份报告**都会红 | 场景腿由 `tools/scenarios.js:29` 的 `rows.push` 种一条 1==2，node 侧的真事件腿与 nav/reload 由 `tools/playtest.cjs:35` 的 `result()`（种下那条红的正是 `:38`），分母从 `LEGS` 现算（`tools/verify.sh:135` 声明、`:217` 与 `:296` 逐腿展开），哪一份没种上就点名哪一份（`tools/verify.sh:316` 的 `RED`）。CI 那一步先要求 rc 非 0（`.github/workflows/ci.yml:91`），再要求日志里点得到 `FAIL`（`.github/workflows/ci.yml:92`） |
+| 什么都没断言的腿不算绿 | `tools/verify.sh:172`（没有 RESULT 行）、`tools/verify.sh:180`（NO CHECKS RUN）。这两处本轮从 113/121 改到 grep 现量的行号：旧的那对一处指着 preflight 的循环头、一处指着一段空白，而旧版 D9 只问"行号在行数内吗"，两句都照样绿 |
 | 写错的腿名不能变成空跑 | `tools/verify.sh:218`–`tools/verify.sh:224`：`LEGS` 只认七个腿名，认不出的直接 `RED` + `FAILED=1`。这一格是本轮补的——`LEGS=hint`（`hint` 是 play 腿里的一条 scenario，不是腿名）曾经一声不响地跑出 `=== ALL GREEN ===` 而一份报告都没有；对数表那一侧同样有 `tools/verify.sh:242` 兜着。补闸台架的 H13 在这一格里咬出了第二个 bug：没有 `LANG` 的环境里 `$leg（` 会把全角括号的首字节算进变量名，红是红了却不点名腿名，所以现在写 `${leg}（` |
-| **文档印的数就是代码/脚本里的现值** | `node tools/doctest.mjs`（本轮新建）：`D1` 三档表对 `TIERS`、`D2` 十条规则名对 `pencil.js` 且每条在非注释行里出现（`D2b` 数的是剥掉注释行之后的正文——整份文件一起数会被注释凑够次数）、`D3` 腿/形态/报告数对 `verify.sh` 的现值、`D4` 端口对四处定义、`D5` 节点预算对 `opts.cap` 且读数真的小于它、`D6` CI 覆盖表与 `ci.yml` 的 job 双向核对、`D7` `SAMPLES` 用子进程探针、`D8` 逐报告条数与两个总数自洽、`D9` 每条 `path:NN` 引用都在真实行数内、`D10` 红线标签双向 |
+| **文档印的数就是代码/脚本里的现值** | `node tools/doctest.mjs`（本轮新建）：`D1` 三档表对 `TIERS`、`D2` 十条规则名对 `pencil.js` 且每条在非注释行里出现（`D2b` 数的是剥掉注释行之后的正文——整份文件一起数会被注释凑够次数）、`D3` 腿/形态/报告数对 `verify.sh` 的现值、`D4` 端口对四处定义、`D5` 节点预算对 `opts.cap` 且读数真的小于它、`D6` CI 覆盖表与 `ci.yml` 的 job 双向核对、`D7` `SAMPLES` 用子进程探针、`D8` 逐报告条数与两个总数自洽、`D9` 每条 `path:NN` 引用都在真实行数内、且被指的那几行整段不许是空白（这一格自己带一把指向空行的刀，刀的空行靶子是运行时数出来的）、`D10` 红线标签双向、`D11` 家门口那两颗条数钉与三道真调用、`D12` 把"份数与条数"在文档里的四处抄本钉回同一把现推的尺子（两处由 `D3`/`D8`，另两处由 `D12`，并各带一处内存阳性对照），最后一格 `D12e` 数的是文档点名的每个 `D` 编号这一次都真的跑过 |
 `SAMPLES` 那一格是本轮补闸时挖出来的：`ci.yml` 的 `Difficulty ladder` 一步一直设 `SAMPLES: "20"`，
 而 `balance.mjs` 只读 `argv[2]`——那行 env 是**装饰**，文档里「`SAMPLES=20 npm run balance` 实测」
 说的是一个不存在的机制。接线补上（`argv` 优先，其次 env，其次默认 20），`D7` 再拿子进程验一次：
@@ -120,12 +120,31 @@
 `D2b` 那一格也是同一轮里被**自己的刀**逼出来的：它原来数整份 `pencil.js`，而 `P0-区` 光注释就出现
 三次，所以"每条规则名都不只活在注释里"这句标签在它自己的刀下兑现不了——改成数正文之后，
 README 台账的 H4（把正文那次出现改名）才真的红。逐把刀的记录在 README 的**破坏试验台账**一节。
+`D9` 这一轮加严了一道：**被指的那几行整段是空白就红**。上线这一轮它就咬到两处旧引用——
+「没有 RESULT 行」那句写的行号是 113，那一行其实是 preflight 的循环头，真正的 `RED … 没有 RESULT 行`
+在 `tools/verify.sh` 第 172 行；「NO CHECKS RUN」那句写的 121 整段是空白，真身在第 180 行。
+两句在旧版 D9 下都绿，因为旧版只问"行号在文件的行数内吗"，而"在界内"从来不等于"指到了代码"：
+一条裸引用落在 1 与行数之间可能只是指到一段行距。这一格自己带一把刀（把一句真引用现量指到本闸自己那份文件
+的第一处空行，行号不写死——写死的那个数会在有人填了那一行之后悄悄地不再测任何东西），所以"空行判红"这件事
+有对照：删掉那一道，D9 当场红并点名"这一格没被证明过"。牙跑在 `_scratch/` 下的同名副本里（盘上的仓一个字节没动，
+副本基线 `rows: 52 fail: 0`）：A 腿删掉那一道 ⇒ 只 D9 一条红、`rows: 52 fail: 1`；B 腿把一条真引用改指到副本里
+现量的空行 ⇒ 只 D9 一条红且红行点名「那几行整段是空行」；两腿复原都回 `rc=0`。判词 `TEETH_OK` 与两条读数在
+`_tmp-hebi-blank-teeth.log`，整跑闸的读数在 `_tmp-hebi-blankword.log`。这条腿没覆盖的也写在这：它只核"引用还指着
+实处吗"，不核句子说得对不对；不带名字的裸引用不会因为一句话讲错而红。
 
 本轮合计：`npm test` 127/0；`npm run check` OK；`npm run doctest` `rows: 36 fail: 0`；
 `npm run balance` 红线 0 条破口；
 `bash tools/verify.sh` 604 条断言 / 0 失败（14 份报告 × 2 形态）、`=== ALL GREEN ===`、`rc=0`；
 `GATE_SELFTEST=1` `rc=1`、28 行具名红（632 条断言里 28 条失败，对数表读出「应有 28 份报告，实到 28 份，
 其中 28 份点名吃下了种下的错」）。
+
+那一遍之后台账搬进了仓里（`tools/sabotage.py`，接进 CI 的 browser job），闸多了一条 `D6c`，
+所以全套重跑的一遍是 `_tmp-hebi-inrepo-r1.log`：`npm test` 127/0、`check` OK、`doctest` `rows: 38 fail: 0`、
+`balance` 红线 0 条破口、`verify.sh` 28 份报告 / 604 条断言 / 0 失败、`GATE_SELFTEST=1` `rc=1` 且 28 行具名红、
+`python3 tools/sabotage.py` 15 枪 / 与预期不符 0 / `SAB_RC=0`。回填这些读数之后在定稿树上又跑了两遍：
+`_tmp-hebi-inrepo-r2.log` 与 `_tmp-hebi-inrepo-r3.log`（后者 63 秒，`doctest 38/0`、`npm test 127/0`、
+台账 15 枪 / 0 / `SAB_RC=0`）。为什么没有"最后一遍"：每一遍都会把它的引用写回文档，
+所以这一圈由 N1 那一枪（插一句不带数的散文不许让闸红）与 CI 每次重跑台账来兜住。
 
 ## 不承诺
 
@@ -136,14 +155,14 @@ README 台账的 H4（把正文那次出现改名）才真的红。逐把刀的�
   因此「音效由 WebAudio 合成」不写进 README。
 - **「零美术/零资产文件」没有计数闸。** CI 的 `Entry files exist` 只查 `index.html` 里有
   `<canvas`、`js/main.js`、`hebi` 三个记号（`.github/workflows/ci.yml:49`）；
-  Pages 只上传 `index.html`、`css`、`js`（`.github/workflows/pages.yml:29`、
-  `.github/workflows/pages.yml:30`）。本轮 `find` 没找到 png/mp3/wav/svg/woff，但这是**一次人工观察**。
+  Pages 上传的是 `tools/assemble-site.sh` 拷出来的那份产物（清单只有这一份，`.github/workflows/pages.yml`
+  与本地 `node tools/deploy-set.mjs` 调的是同一支脚本）。本轮 `find` 没找到 png/mp3/wav/svg/woff，但这是**一次人工观察**。
 - **10 条铅笔规则是否每条都真的会开火，没量。** `js/engine/pencil.js:14` 把「8x8 以上推不完」
   归因到 `P0-区` 这条禁用，并指名要 DESIGN 写「不承诺」——这条**归因**没有任何闸量过。
   实测到的只有：`hint` 腿本轮用完一局 6×6 只开了 4 条
   （`P1-链 / P4-零 / P4-独 / P2-围`，`tools/scenarios.js:295` 把它们随断言一起打出来），
   且每条名字都过 `/^P[0-4]-/`（`tools/scenarios.js:296`）；
-  页面「你会用到的几条」列的是 4 个规则族（`index.html:81`–`index.html:86`），
+  页面「你会用到的几条」列的是 4 个规则族（`index.html:66`–`index.html:71`，四条 `<li>` 在 68 到 71），
   没有闸检查这份清单与 `js/engine/pencil.js:3`–`js/engine/pencil.js:12` 的实现集是否一致。
 - **`generate.js` 头部注释里的历史对照数**（`js/engine/generate.js:2`–`js/engine/generate.js:5` 的
   `2/60`、`396 次计数 ≈ 19 s`、`20/30 · 19 ms`，`js/engine/generate.js:25` 的 `0/3`，
