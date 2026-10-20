@@ -132,7 +132,7 @@ README 台账的 H4（把正文那次出现改名）才真的红。逐把刀的�
 `_tmp-hebi-blank-teeth.log`，整跑闸的读数在 `_tmp-hebi-blankword.log`。这条腿没覆盖的也写在这：它只核"引用还指着
 实处吗"，不核句子说得对不对；不带名字的裸引用不会因为一句话讲错而红。
 
-本轮合计：`npm test` 127/0；`npm run check` OK；`npm run doctest` `rows: 36 fail: 0`；
+本轮合计：`npm test` 127/0；`npm run check` OK；`npm run doctest` `rows: 52 fail: 0`；
 `npm run balance` 红线 0 条破口；
 `bash tools/verify.sh` 604 条断言 / 0 失败（14 份报告 × 2 形态）、`=== ALL GREEN ===`、`rc=0`；
 `GATE_SELFTEST=1` `rc=1`、28 行具名红（632 条断言里 28 条失败，对数表读出「应有 28 份报告，实到 28 份，
