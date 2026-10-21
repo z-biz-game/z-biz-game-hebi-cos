@@ -60,7 +60,6 @@ const el = {
   fxCanvas: $('#fx'),
   pauseVeil: $('#pause-veil'),
   pauseBtn: $('#btn-pause'),
-  fullBtn: $('#btn-full'),
   soundBtn: $('#btn-sound'),
   motionBtn: $('#btn-motion'),
   help: $('#howto'),
@@ -183,12 +182,6 @@ function showHelp(open) {
   return next;
 }
 
-
-function syncFullscreenLabel() {
-  const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  el.fullBtn.textContent = isFull ? '退出全屏' : '全屏';
-  el.fullBtn.setAttribute('aria-pressed', String(isFull));
-}
 
 function toggleMute() {
   Store.setSetting('sound', !Store.setting('sound'));
@@ -629,7 +622,6 @@ $('#btn-motion').addEventListener('click', () => {
 });
 el.pauseBtn.addEventListener('click', () => togglePause());
 el.pauseVeil.addEventListener('click', () => togglePause(false));
-el.fullBtn.addEventListener('click', toggleFullscreen);
 $('#btn-help').addEventListener('click', () => showHelp());
 $('#howto-close').addEventListener('click', () => showHelp(false));
 $('#btn-reset').addEventListener('click', () => {
@@ -690,7 +682,7 @@ window.addEventListener('keydown', (ev) => {
     return;
   }
   if (k === 'f' || k === 'F') {
-    toggleFullscreen();
+    toggleFullscreen(fsRoot());
     ev.preventDefault();
     keys.handled++;
     return;
@@ -752,8 +744,6 @@ function moveCursor(k) {
 }
 
 window.addEventListener('resize', draw);
-document.addEventListener('fullscreenchange', syncFullscreenLabel);
-document.addEventListener('webkitfullscreenchange', syncFullscreenLabel);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushResume();
   else startLoop();
@@ -762,7 +752,6 @@ window.addEventListener('pagehide', flushResume);
 
 applyThemeVars();
 applySettings();
-syncFullscreenLabel();
 renderMenu();
 startLoop();
 
@@ -923,17 +912,6 @@ function bindFullscreen(btn) {
 
   document.addEventListener('fullscreenchange', sync);
   document.addEventListener('webkitfullscreenchange', sync);
-
-  window.addEventListener('keydown', (ev) => {
-    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
-    // 正在输入框里打字时不劫持按键，否则会打不出 f。
-    if (ev.target && /^(input|textarea|select)$/i.test(ev.target.tagName)) return;
-    if (ev.key === "f" || ev.key === "F") {
-      ev.preventDefault();
-      toggleFullscreen(root);
-      sync();
-    }
-  });
 
   sync();
 }
