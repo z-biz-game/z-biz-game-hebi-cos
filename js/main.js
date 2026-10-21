@@ -82,6 +82,7 @@ const keys = { seen: 0, handled: 0, repeated: 0, last: '', by: {} };
 // clockMs 由积分器按帧 dt 累加；runClock 是"这一局该不该走表"，paused 是"玩家按了暂停"。
 let clockMs = 0;
 let runClock = false;
+let paused = false;
 let rafId = 0;
 let boardDirty = true;
 
@@ -252,21 +253,18 @@ function flushResume() {
   Store.saveResume(game.puzzle, game.codes(), clock(), { moves: game.moves, hints: game.hints });
 }
 
+// 走表开关：时钟是帧积分器（js/time/loop.js）的积分结果，唯一一个源是 clockMs。
+// 开表 = 允许积分器把 dt 累加进 clockMs；停表 = 走表停住但帧循环还在（动效还要画）。
+// 新一局从"没暂停"开始，所以开表时顺手把暂停态归零。
 function startClock() {
-  paused = false;   // 新一局从"没暂停"开始；setPaused(false) 走的就是这条路
-  startedAt = Date.now();
-  clearInterval(ticker);
-  ticker = setInterval(() => {
-    el.time.textContent = fmtMs(clock());
-    if (pulse) draw();
-  }, 1000);
+  paused = false;
+  runClock = true;
+  startLoop();
 }
 
 function stopClock() {
-  baseElapsed = clock();
-  startedAt = 0;
-  clearInterval(ticker);
-  ticker = 0;
+  runClock = false;
+  schedule();
 }
 
 function showHint(info) {
@@ -622,6 +620,8 @@ $('#btn-motion').addEventListener('click', () => {
 });
 el.pauseBtn.addEventListener('click', () => togglePause());
 el.pauseVeil.addEventListener('click', () => togglePause(false));
+// 暂停浮层里那颗「继续」也是入口：点它等于解除暂停（force=false，不做取反）。
+$('#btn-pause-2').addEventListener('click', () => togglePause(false));
 $('#btn-help').addEventListener('click', () => showHelp());
 $('#howto-close').addEventListener('click', () => showHelp(false));
 $('#btn-reset').addEventListener('click', () => {
@@ -934,38 +934,34 @@ if (document.readyState === 'loading') {
 
 // ---- 暂停：真的把仿真冻住 ----
 //
-// 本仓唯一持续推进的仿真是耗时时钟（startedAt 跟 Date.now 走，ticker 是它唯一心跳）。
-// setPaused(true) 调 stopClock()：baseElapsed 落账、startedAt 归 0、ticker 停，
-// 此后 clock() 恒等于 baseElapsed，墙钟再走多久都加不上去。
-// setPaused(false) 调 startClock()：startedAt 复位成"从现在起"，
-// 所以恢复后的第一帧不会把暂停期间憋下的墙钟一次性灌进来（没有 dt 尖峰）。
+// 暂停不推进仿真（时钟冻住、粒子冻住），并且吃掉所有落子入口。
+// 恢复后不丢状态——盘、光标、提示计数都没被碰过，唯一的动作是把循环再点起来。
 //
-// 用 var 而不是 let：本块在文件末尾，而 startClock() 可能在它之前就被 begin() 调过；
-// let 声明提升不到初始化，TDZ 会直接抛 ReferenceError。
-var paused = false;
-function setPaused(v) {
-  v = !!v;
-  if (v === paused) return paused;
-  if (v) stopClock(); else startClock();
-  paused = v;
-  var b = document.getElementById('btn-pause');
-  if (b) {
-    b.setAttribute('aria-pressed', String(paused));
-    b.textContent = paused ? '继续' : '暂停';
-    b.title = paused ? '继续 (P)' : '暂停 (P)';
+// 走表本身是帧积分器（js/time/loop.js）的事：暂停时 tick() 直接 return，
+// dt 进不了 clockMs，所以暂停期间墙钟走多久都加不上去。
+function togglePause(force) {
+  if (!game || game.status === 'won') return paused;
+  paused = typeof force === 'boolean' ? force : !paused;
+  el.pauseVeil.hidden = !paused;
+  el.pauseBtn.setAttribute('aria-pressed', String(paused));
+  el.pauseBtn.textContent = paused ? '继续' : '暂停';
+  el.pauseBtn.title = paused ? '继续 (P)' : '暂停 (P)';
+  if (paused) {
+    say('已暂停：时钟与动效停住，写格与提示都不生效。');
+  } else {
+    say('');
+    // 暂停期间的墙钟缺口不算进这一局：积分器复位 ⇒ 恢复后的第一帧 dt=0，
+    // 不会把"去倒了杯咖啡"补成 250ms 的仿真快进（那笔账本来就被 MAX_FRAME_DT 钳住）。
+    time.reset();
+    startLoop();
   }
+  syncStats();
   return paused;
 }
-function togglePause() { return setPaused(!paused); }
-function isPaused() { return paused; }
 
-document.getElementById('btn-pause').addEventListener('click', togglePause);
-window.addEventListener('keydown', function (ev) {
-  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
-  if (ev.target && /input|textarea|select/i.test(ev.target.tagName)) return;
-  var k = ev.key;
-  if (k === 'p' || k === 'P') { ev.preventDefault(); togglePause(); }
-});
+// isPaused() 是旧接口 setPaused(v) 那套留下的等价读法：仓内没有调用点，
+// 但语义与 paused 状态一致，留着不删（外部 harness 可能按名字取）。
+function isPaused() { return paused; }
 
 // ---- 静音开关（M）-----------------------------------------------------------------
 // M 键切静音，与全屏/重开/提示同一套键位。
