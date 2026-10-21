@@ -250,7 +250,10 @@ function syncAll() {
 
 function flushResume() {
   if (!game || game.status === 'won') return;
-  Store.saveResume(game.puzzle, game.codes(), clock(), { moves: game.moves, hints: game.hints });
+  // 存档里的耗时按整数毫秒落地：store.js 的解码逐字段要 isInt（readResume → n()），
+  // 小数会被判成"这份存档不可用"，读回来就成了没有存档（elapsedMs 归 0）。
+  // 帧积分器给的是浮点毫秒，所以在这一层落地成整数。
+  Store.saveResume(game.puzzle, game.codes(), Math.round(clock()), { moves: game.moves, hints: game.hints });
 }
 
 // 走表开关：时钟是帧积分器（js/time/loop.js）的积分结果，唯一一个源是 clockMs。
@@ -293,7 +296,8 @@ function showHint(info) {
 
 function onWin() {
   stopClock();
-  const ms = clock();
+  // 纪录按整数毫秒记：store.best() 只认 isInt(ms)，"最小提示优先"那条比较也要用它。
+  const ms = Math.round(clock());
   const better = Store.recordBest(game.puzzle.tier, {
     ms,
     hints: game.hints,
