@@ -34,7 +34,11 @@ const ok = (cond, label, detail) => {
 
 const README = read('README.md');
 const DESIGN = read('DESIGN.md');
-const DOCS = README + '\n' + DESIGN;
+// 文档面按「仓根实际有哪几份 .md」取，不按手写名单：deliverable.md 落进仓根那天起，它印的每条
+// `文件:行号` 都得有人开文件核一遍。上一版这里只拼 README+DESIGN，那 2 条引用谁都没查——不红，是隐形。
+// 份数由 D13 钉住：那份名单是警报器（多一份/少一份/贡献 0 条都要红），不是输入来源。
+const EXTRA_FACES = readdirSync(ROOT).filter((f) => f.endsWith('.md') && f !== 'README.md' && f !== 'DESIGN.md').sort();
+const DOCS = [README, DESIGN, ...EXTRA_FACES.map(read)].join('\n');
 const CI = read('.github/workflows/ci.yml');
 const BAL = read('tools/balance.mjs');
 const VERIFY = read('tools/verify.sh');
@@ -255,6 +259,15 @@ ok(bad.length === 0 && !!blankKnife, 'D9 每一条 path:NN 引用都落在真实
     : blankKnife ? `${cites.length} 条全部在范围内 · 刀：第 ${blankAt} 行是空行，指过去判红`
       : '本闸自己的文件里找不出空行靶子 —— 空行那一道没被证明过');
 
+// ---- D13 输入集自己不空转：除 README/DESIGN 外的每一份仓根文档都要真贡献引用 ----
+// D9 只说「解析到的引用都在界内」，它不知道少读了一份文档这件事：把 deliverable.md 从面里摘掉，
+// D9 照样全绿，只是那几条引用没人查（2026-10-22 行为探针就是这么把这一类照出来的）。
+const SHAPE_CITE = /[\w./-]+\.(?:js|mjs|cjs|sh|json|html|yml):\d/g;
+const perFace = EXTRA_FACES.map((f) => `${f} ${((read(f).match(SHAPE_CITE) || []).length)}`);
+ok(EXTRA_FACES.length === 1 && perFace.every((x) => +x.split(' ')[1] >= 1),
+  'D13 仓根除 README/DESIGN 外正好多一份交付文档，而且它在这条腿里真有引用可查（一份都没扫到＝输入塌陷，贡献 0 条＝白读）',
+  `${EXTRA_FACES.length} 份 · ${perFace.join(' · ') || '（没有第三份）'}`);
+
 // ---- D10 红线标签双向：文档点名的每条红线都得存在，存在的每条红线都得有人写 ----
 const realLabels = [...new Set([...BAL.matchAll(/\b(B\d(?:b)?)(?=[ 　])/g)].map((m) => m[1]))];
 const docLabels = [...new Set([...DOCS.matchAll(/`?(B\d(?:b)?)`?/g)].map((m) => m[1]))];
@@ -352,7 +365,7 @@ ok(docRows.length === 1 && docRows[0] === String(finalRows)
 // 这一格排在最后是有原因的：它要数的是"这一次跑过的组"，而 D11 自己那几项也得先进 emitted。
 // 文档点名的 D 编号是玩家/改闸的人按图索骥的入口——入口指到一洞不存在、或指到一个这一遍
 // 没跑的组，都比"少一条断言"更坏，因为它是绿的假话。
-const GROUPS_TOTAL = 12;
+const GROUPS_TOTAL = 13;
 const dMentions = [...new Set((DOCS.match(/(?<![A-Za-z0-9_])D\d+/g) || []))].map((x) => +x.slice(1)).sort((a, b) => a - b);
 const unknownD = dMentions.filter((v) => !emitted.has(v));
 ok(dMentions.length >= 10 && dMentions.length <= GROUPS_TOTAL && unknownD.length === 0

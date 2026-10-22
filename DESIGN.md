@@ -112,7 +112,7 @@
 | 闸自己会红——而且是**每一份报告**都会红 | 场景腿由 `tools/scenarios.js:29` 的 `rows.push` 种一条 1==2，node 侧的真事件腿与 nav/reload 由 `tools/playtest.cjs:35` 的 `result()`（种下那条红的正是 `:38`），分母从 `LEGS` 现算（`tools/verify.sh:135` 声明、`:217` 与 `:296` 逐腿展开），哪一份没种上就点名哪一份（`tools/verify.sh:316` 的 `RED`）。CI 那一步先要求 rc 非 0（`.github/workflows/ci.yml:91`），再要求日志里点得到 `FAIL`（`.github/workflows/ci.yml:92`） |
 | 什么都没断言的腿不算绿 | `tools/verify.sh:172`（没有 RESULT 行）、`tools/verify.sh:180`（NO CHECKS RUN）。这两处本轮从 113/121 改到 grep 现量的行号：旧的那对一处指着 preflight 的循环头、一处指着一段空白，而旧版 D9 只问"行号在行数内吗"，两句都照样绿 |
 | 写错的腿名不能变成空跑 | `tools/verify.sh:218`–`tools/verify.sh:224`：`LEGS` 只认七个腿名，认不出的直接 `RED` + `FAILED=1`。这一格是本轮补的——`LEGS=hint`（`hint` 是 play 腿里的一条 scenario，不是腿名）曾经一声不响地跑出 `=== ALL GREEN ===` 而一份报告都没有；对数表那一侧同样有 `tools/verify.sh:242` 兜着。补闸台架的 H13 在这一格里咬出了第二个 bug：没有 `LANG` 的环境里 `$leg（` 会把全角括号的首字节算进变量名，红是红了却不点名腿名，所以现在写 `${leg}（` |
-| **文档印的数就是代码/脚本里的现值** | `node tools/doctest.mjs`（本轮新建）：`D1` 三档表对 `TIERS`、`D2` 十条规则名对 `pencil.js` 且每条在非注释行里出现（`D2b` 数的是剥掉注释行之后的正文——整份文件一起数会被注释凑够次数）、`D3` 腿/形态/报告数对 `verify.sh` 的现值、`D4` 端口对四处定义、`D5` 节点预算对 `opts.cap` 且读数真的小于它、`D6` CI 覆盖表与 `ci.yml` 的 job 双向核对、`D7` `SAMPLES` 用子进程探针、`D8` 逐报告条数与两个总数自洽、`D9` 每条 `path:NN` 引用都在真实行数内、且被指的那几行整段不许是空白（这一格自己带一把指向空行的刀，刀的空行靶子是运行时数出来的）、`D10` 红线标签双向、`D11` 家门口那两颗条数钉与三道真调用、`D12` 把"份数与条数"在文档里的四处抄本钉回同一把现推的尺子（两处由 `D3`/`D8`，另两处由 `D12`，并各带一处内存阳性对照），最后一格 `D12e` 数的是文档点名的每个 `D` 编号这一次都真的跑过 |
+| **文档印的数就是代码/脚本里的现值** | `node tools/doctest.mjs`（本轮新建）：`D1` 三档表对 `TIERS`、`D2` 十条规则名对 `pencil.js` 且每条在非注释行里出现（`D2b` 数的是剥掉注释行之后的正文——整份文件一起数会被注释凑够次数）、`D3` 腿/形态/报告数对 `verify.sh` 的现值、`D4` 端口对四处定义、`D5` 节点预算对 `opts.cap` 且读数真的小于它、`D6` CI 覆盖表与 `ci.yml` 的 job 双向核对、`D7` `SAMPLES` 用子进程探针、`D8` 逐报告条数与两个总数自洽、`D9` 每条 `path:NN` 引用都在真实行数内、且被指的那几行整段不许是空白（这一格自己带一把指向空行的刀，刀的空行靶子是运行时数出来的）、`D10` 红线标签双向、`D11` 家门口那两颗条数钉与三道真调用、`D12` 把"份数与条数"在文档里的四处抄本钉回同一把现推的尺子（两处由 `D3`/`D8`，另两处由 `D12`，并各带一处内存阳性对照）、`D13` 数的是仓根除 README/DESIGN 外那一份交付文档真被读进了这条腿的面里（面按 `readdirSync` 现数取，不是手写名单——手写那版只拼 README+DESIGN，`deliverable.md` 落进仓根后它印的引用谁都没核，而且不红）、最后一格 `D12e` 数的是文档点名的每个 `D` 编号这一次都真的跑过 |
 `SAMPLES` 那一格是本轮补闸时挖出来的：`ci.yml` 的 `Difficulty ladder` 一步一直设 `SAMPLES: "20"`，
 而 `balance.mjs` 只读 `argv[2]`——那行 env 是**装饰**，文档里「`SAMPLES=20 npm run balance` 实测」
 说的是一个不存在的机制。接线补上（`argv` 优先，其次 env，其次默认 20），`D7` 再拿子进程验一次：
@@ -132,7 +132,7 @@ README 台账的 H4（把正文那次出现改名）才真的红。逐把刀的�
 `_tmp-hebi-blank-teeth.log`，整跑闸的读数在 `_tmp-hebi-blankword.log`。这条腿没覆盖的也写在这：它只核"引用还指着
 实处吗"，不核句子说得对不对；不带名字的裸引用不会因为一句话讲错而红。
 
-本轮合计：`npm test` 127/0；`npm run check` OK；`npm run doctest` `rows: 52 fail: 0`；
+本轮合计：`npm test` 127/0；`npm run check` OK；`npm run doctest` `rows: 53 fail: 0`；
 `npm run balance` 红线 0 条破口；
 `bash tools/verify.sh` 604 条断言 / 0 失败（14 份报告 × 2 形态）、`=== ALL GREEN ===`、`rc=0`；
 `GATE_SELFTEST=1` `rc=1`、28 行具名红（632 条断言里 28 条失败，对数表读出「应有 28 份报告，实到 28 份，
