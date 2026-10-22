@@ -330,12 +330,24 @@ const docKnives = [...new Set([...README.matchAll(/^\| (H\d+|N\d) \|/gm)].map((m
 ok(docKnives.length === knives,
   `D11e README 逐枪表解析到的刀数 == 台账源码现数的刀数（${knives}；解析到 ${docKnives.length} 行）`,
   docKnives.length ? `文档 ${docKnives.sort().join(' ')} vs 源码 ${knives}` : '表里一行都没解析到');
-// 文档里 `rows: N fail: 0` 那几处是"本闸本轮的读数"：它们是抄的，而抄的数没人核对就会漂
-// （DESIGN 里那两句带日志名的历史记录是某一轮的读数，不在这一处对账的范围内）。
-const docRows = [...new Set([...README.matchAll(/rows: (\d+) fail: 0/g)].map((m) => m[1]))];
-ok(docRows.length === 1 && docRows[0] === String(finalRows),
-  `D11f README 里 \`rows: N fail: 0\` 只出现一个 N，而且等于本闸实跑项数（${finalRows}）`,
-  docRows.length ? `文档 ${docRows.join('/')}` : '文档里一处 rows: 都没解析到（那就是把这几处删了）');
+// 文档里 `rows: N fail: 0` 那几处是"本闸本轮的读数"：它们是抄的，而抄的数没人核对就会漂。
+// 这一条原先只读 README，于是 DESIGN 里那句「本轮合计」漂在 36 上一路绿（2026-10-22 手工
+// 复量才发现，那一笔只改了数、没改这条腿）。现在范围按**行的形状**认，不按文件名认：
+// 句里点名了日志文件（`_tmp-*.log`）或写明是"副本基线"那一遍的，说的是某一轮的历史读数，
+// 不参与对账；剩下的每一处——README 的三处加上 DESIGN 的「本轮合计」——都必须是现值。
+// 反空转：两份文档各至少要有 1 处在范围内。DESIGN 读到 0 处就等于这条腿又退回只看 README 了。
+const HIST_ROW = /_tmp-[\w.-]*\.log|副本基线/;
+const stampedRows = (txt) => txt.split('\n')
+  .filter((l) => !HIST_ROW.test(l))
+  .flatMap((l) => [...l.matchAll(/rows: (\d+) fail: 0/g)].map((m) => m[1]));
+const cellsReadme = stampedRows(README);
+const cellsDesign = stampedRows(DESIGN);
+const docRows = [...new Set([...cellsReadme, ...cellsDesign])];
+ok(docRows.length === 1 && docRows[0] === String(finalRows)
+  && cellsReadme.length >= 1 && cellsDesign.length >= 1,
+  `D11f README 与 DESIGN 里现读数的 \`rows: N fail: 0\` 只出现一个 N，而且等于本闸实跑项数（${finalRows}）`,
+  `README ${cellsReadme.length} 处 · DESIGN ${cellsDesign.length} 处 · `
+  + (docRows.length ? `值 ${docRows.join('/')}` : '一处都没解析到（那就是把这几处删了）'));
 
 // 这一格排在最后是有原因的：它要数的是"这一次跑过的组"，而 D11 自己那几项也得先进 emitted。
 // 文档点名的 D 编号是玩家/改闸的人按图索骥的入口——入口指到一洞不存在、或指到一个这一遍

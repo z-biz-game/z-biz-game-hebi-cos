@@ -76,8 +76,8 @@ KNIVES = [
     # 这把刀的 needle 里带着那两个数，是故意的：加/删一条断言的人若忘了同时改 verify.sh 的钉，
     # 这一枪不会静默跳过，而是以 `needle 出现 0 次` 的 ERROR 点名他——补 D11 那一轮的 46→47、
     # 17→19 与后面补 D12 那两处的 47→52、19→20 都是这么被迫两边一起走的。
-    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:52 sabotage:20"',
-     'LOGIC_EXPECTS="doctest:51 sabotage:20"', ['doctest'], 'D11b'),
+    ('H15', 'tools/verify.sh', 'LOGIC_EXPECTS="doctest:52 sabotage:21"',
+     'LOGIC_EXPECTS="doctest:51 sabotage:21"', ['doctest'], 'D11b'),
     ('H16', 'tools/verify.sh', 'node "$HERE/tools/doctest.mjs" >"$LLOG" 2>&1\n',
      '', ['doctest'], 'D11d'),
     # D6d 的两半各一把刀：一把砍"CI 只许调 leg"，一把砍"leg 的根要盖住树"。都是同行内联替换，
@@ -92,6 +92,11 @@ KNIVES = [
     # 同行内替换，只动那一个数：插一行就会挪动这份文档里别的东西的位置。
     ('H19', 'README.md', '28 份报告 / 604 条断言 / 0 失败', '28 份报告 / 605 条断言 / 0 失败',
      ['doctest'], 'D12b'),
+    # D11f 这一格把对账范围从 README 扩到 DESIGN 的「本轮合计」，那一句正是上一轮漂成 36 的那处。
+    # 只有 README 那三处会红的腿，在这句上写 51 也照样绿——所以刀下在 DESIGN，红必须点名 D11f。
+    # 同行内改一个数：插行会挪这份文档里别的行号引用。
+    ('H20', 'DESIGN.md', '`npm run doctest` `rows: 52 fail: 0`',
+     '`npm run doctest` `rows: 51 fail: 0`', ['doctest'], 'D11f'),
     ('N1', 'README.md', '一条规则要能被点名，才谈得上「推不出来时该怪谁」。',
      '一条规则要能被点名，才谈得上「推不出来时该怪谁」。这一句是台账的对照组：它不承载任何数，改它不该让闸红。',
      ['doctest'], ''),
