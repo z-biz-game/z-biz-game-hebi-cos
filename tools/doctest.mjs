@@ -330,11 +330,12 @@ const docKnives = [...new Set([...README.matchAll(/^\| (H\d+|N\d) \|/gm)].map((m
 ok(docKnives.length === knives,
   `D11e README 逐枪表解析到的刀数 == 台账源码现数的刀数（${knives}；解析到 ${docKnives.length} 行）`,
   docKnives.length ? `文档 ${docKnives.sort().join(' ')} vs 源码 ${knives}` : '表里一行都没解析到');
-// 文档里 `rows: N fail: 0` 那几处是"本闸本轮的读数"：它们是抄的，而抄的数没人核对就会漂
-// （DESIGN 里那两句带日志名的历史记录是某一轮的读数，不在这一处对账的范围内）。
-const docRows = [...new Set([...README.matchAll(/rows: (\d+) fail: 0/g)].map((m) => m[1]))];
+// 文档里 `rows: N fail: 0` 那几处是"本闸本轮的读数"：它们是抄的，而抄的数没人核对就会漂。
+// 两处面都读（README 与 DESIGN）：DESIGN 那句「本轮合计」和那句「副本基线」同样是现役读数，
+// 只有带日志名的那一遍（`_tmp-hebi-inrepo-r1.log`）是历史，它已经写成散文，不挂这台闸的尺子。
+const docRows = [...new Set([...DOCS.matchAll(/rows: (\d+) fail: 0/g)].map((m) => m[1]))];
 ok(docRows.length === 1 && docRows[0] === String(finalRows),
-  `D11f README 里 \`rows: N fail: 0\` 只出现一个 N，而且等于本闸实跑项数（${finalRows}）`,
+  `D11f 两处面里 \`rows: N fail: 0\` 只出现一个 N，而且等于本闸实跑项数（${finalRows}）`,
   docRows.length ? `文档 ${docRows.join('/')}` : '文档里一处 rows: 都没解析到（那就是把这几处删了）');
 
 // 这一格排在最后是有原因的：它要数的是"这一次跑过的组"，而 D11 自己那几项也得先进 emitted。
