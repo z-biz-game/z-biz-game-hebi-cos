@@ -162,7 +162,7 @@ README 台账的 H4（把正文那次出现改名）才真的红。逐把刀的�
   实测到的只有：`hint` 腿本轮用完一局 6×6 只开了 4 条
   （`P1-链 / P4-零 / P4-独 / P2-围`，`tools/scenarios.js:295` 把它们随断言一起打出来），
   且每条名字都过 `/^P[0-4]-/`（`tools/scenarios.js:296`）；
-  页面「你会用到的几条」列的是 4 个规则族（`index.html:67`–`index.html:72`，四条 `<li>` 在 69 到 72），
+  页面「你会用到的几条」列的是 4 个规则族（`index.html:66`–`index.html:71`，四条 `<li>` 在 69 到 72），
   没有闸检查这份清单与 `js/engine/pencil.js:3`–`js/engine/pencil.js:12` 的实现集是否一致。
 - **`generate.js` 头部注释里的历史对照数**（`js/engine/generate.js:2`–`js/engine/generate.js:5` 的
   `2/60`、`396 次计数 ≈ 19 s`、`20/30 · 19 ms`，`js/engine/generate.js:25` 的 `0/3`，
